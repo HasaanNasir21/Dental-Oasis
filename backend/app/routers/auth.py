@@ -1,0 +1,47 @@
+from fastapi import APIRouter, Response, Depends
+from app.schemas.auth import LoginRequest, AdminInfo
+from app.schemas.common import SuccessResponse
+from app.services.auth_service import authenticate_admin
+from app.dependencies import get_current_admin
+from app.config import settings
+from datetime import timedelta
+
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+COOKIE_NAME = "access_token"
+COOKIE_MAX_AGE = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+
+
+@router.post("/login", response_model=SuccessResponse[AdminInfo])
+def login(request: LoginRequest, response: Response):
+    token = authenticate_admin(request.username, request.password)
+
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=False,  # Set True in production with HTTPS
+        max_age=COOKIE_MAX_AGE,
+    )
+
+    return SuccessResponse(
+        success=True,
+        message="Login successful.",
+        data=AdminInfo(username=settings.ADMIN_USERNAME),
+    )
+
+
+@router.post("/logout", response_model=SuccessResponse)
+def logout(response: Response, _: str = Depends(get_current_admin)):
+    response.delete_cookie(key=COOKIE_NAME, samesite="lax")
+    return SuccessResponse(success=True, message="Logged out successfully.")
+
+
+@router.get("/me", response_model=SuccessResponse[AdminInfo])
+def me(username: str = Depends(get_current_admin)):
+    return SuccessResponse(
+        success=True,
+        message="Authenticated.",
+        data=AdminInfo(username=username),
+    )
