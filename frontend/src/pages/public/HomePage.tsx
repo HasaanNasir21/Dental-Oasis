@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import {
-  ChevronRight, Star, MapPin, Clock, Phone, CheckCircle,
+  ChevronRight, Star, MapPin, Clock, CheckCircle,
   Shield, Heart, Zap, Award, Calendar,
 } from 'lucide-react'
 import { serviceApi } from '../../services/serviceApi'

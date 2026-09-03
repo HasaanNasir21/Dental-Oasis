@@ -5,7 +5,6 @@ import type {
   Appointment,
   AppointmentListItem,
   PublicAppointmentCreate,
-  AppointmentCreate,
   AppointmentUpdate,
 } from '../types'
 

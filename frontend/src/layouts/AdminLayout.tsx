@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, ClipboardList, Users, MessageSquare, Settings,
-  LogOut, Menu, X,
+  LogOut, Menu,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { MapPin, Clock, Mail } from 'lucide-react'
+import { MapPin, Clock } from 'lucide-react'
 
 export default function Footer() {
   const year = new Date().getFullYear()

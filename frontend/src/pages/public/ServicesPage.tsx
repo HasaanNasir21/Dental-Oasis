@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, CheckCircle } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { serviceApi } from '../../services/serviceApi'
 import type { ServiceListItem } from '../../types'
 import { PageLoader } from '../../components/ui/LoadingSpinner'

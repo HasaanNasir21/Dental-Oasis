@@ -16,7 +16,7 @@ export function parseApiError(error: unknown): string {
     if (error.response?.status === 404) return 'Resource not found.'
     if (error.response?.status === 429) return 'Too many requests. Please wait a moment and try again.'
     if (error.response?.status === 409) return data?.message || 'Conflict error.'
-    if (error.response?.status >= 500) return 'Server error. Please try again later.'
+    if ((error.response?.status ?? 0) >= 500) return 'Server error. Please try again later.'
     return error.message || 'Something went wrong.'
   }
 

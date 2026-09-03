@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Users, Calendar, Clock, CheckCircle, XCircle, AlertCircle,
+  Users, Calendar, Clock, CheckCircle, AlertCircle,
   TrendingUp, ChevronRight,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
