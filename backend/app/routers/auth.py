@@ -4,7 +4,6 @@ from app.schemas.common import SuccessResponse
 from app.services.auth_service import authenticate_admin
 from app.dependencies import get_current_admin
 from app.config import settings
-from datetime import timedelta
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -18,6 +17,7 @@ IS_PRODUCTION = settings.APP_ENV == "production"
 def login(request: LoginRequest, response: Response):
     token = authenticate_admin(request.username, request.password)
 
+    # Set cookie for same-domain setups
     response.set_cookie(
         key=COOKIE_NAME,
         value=token,
@@ -27,10 +27,12 @@ def login(request: LoginRequest, response: Response):
         max_age=COOKIE_MAX_AGE,
     )
 
+    # Also return token in response for cross-domain setups
     return SuccessResponse(
         success=True,
         message="Login successful.",
         data=AdminInfo(username=settings.ADMIN_USERNAME),
+        token=token,
     )
 
 

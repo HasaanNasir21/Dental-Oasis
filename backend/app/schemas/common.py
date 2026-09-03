@@ -8,6 +8,7 @@ class SuccessResponse(BaseModel, Generic[T]):
     success: bool = True
     message: str = "OK"
     data: Optional[T] = None
+    token: Optional[str] = None
 
 
 class ErrorResponse(BaseModel):

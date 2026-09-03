@@ -4,6 +4,7 @@ export interface ApiResponse<T = unknown> {
   success: boolean
   message: string
   data: T | null
+  token?: string
 }
 
 export interface PaginatedResponse<T> {
