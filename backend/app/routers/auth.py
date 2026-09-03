@@ -11,6 +11,8 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 COOKIE_NAME = "access_token"
 COOKIE_MAX_AGE = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
+IS_PRODUCTION = settings.APP_ENV == "production"
+
 
 @router.post("/login", response_model=SuccessResponse[AdminInfo])
 def login(request: LoginRequest, response: Response):
@@ -20,8 +22,8 @@ def login(request: LoginRequest, response: Response):
         key=COOKIE_NAME,
         value=token,
         httponly=True,
-        samesite="lax",
-        secure=False,  # Set True in production with HTTPS
+        samesite="none" if IS_PRODUCTION else "lax",
+        secure=IS_PRODUCTION,
         max_age=COOKIE_MAX_AGE,
     )
 
@@ -34,7 +36,11 @@ def login(request: LoginRequest, response: Response):
 
 @router.post("/logout", response_model=SuccessResponse)
 def logout(response: Response, _: str = Depends(get_current_admin)):
-    response.delete_cookie(key=COOKIE_NAME, samesite="lax")
+    response.delete_cookie(
+        key=COOKIE_NAME,
+        samesite="none" if IS_PRODUCTION else "lax",
+        secure=IS_PRODUCTION,
+    )
     return SuccessResponse(success=True, message="Logged out successfully.")
 
 
