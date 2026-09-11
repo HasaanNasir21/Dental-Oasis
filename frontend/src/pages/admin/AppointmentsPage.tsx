@@ -26,16 +26,21 @@ function AppointmentMessageModal({
   const [copied, setCopied] = useState(false)
 
   const message = [
-    `Assalam o Alaikum ${appt.patient_name},`,
+    `Appointment Confirmation – Dental Oasis`,
     ``,
-    `Your appointment at Dental Oasis has been confirmed.`,
+    `Dear ${appt.patient_name},`,
     ``,
-    `Reason: ${appt.reason}`,
+    `Your appointment at Dental Oasis has been successfully confirmed.`,
+    ``,
+    `Treatment: ${appt.reason}`,
     `Date: ${appt.appointment_date ? formatDate(appt.appointment_date) : '—'}`,
     `Time: ${appt.appointment_time ? formatTime(appt.appointment_time) : '—'}`,
     ``,
-    `Please arrive on time.`,
-    `- Dental Oasis`,
+    `Please arrive a few minutes before your scheduled appointment time.`,
+    ``,
+    `We look forward to seeing you.`,
+    ``,
+    `Dental Oasis`,
   ].join('\n')
 
   const handleCopy = async () => {
