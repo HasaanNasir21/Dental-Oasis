@@ -163,8 +163,9 @@ def update_appointment(db: Session, appointment_id: int, data: AppointmentUpdate
     for field, value in update_data.items():
         setattr(appointment, field, value)
 
-    # Auto-create patient record when appointment is confirmed
-    if appointment.status == AppointmentStatus.CONFIRMED:
+    # Auto-create patient record when appointment is confirmed.
+    # Compare against the string value to handle both enum and raw string cases.
+    if appointment.status in (AppointmentStatus.CONFIRMED, AppointmentStatus.CONFIRMED.value):
         _ensure_patient_record(db, appointment)
 
     db.commit()
