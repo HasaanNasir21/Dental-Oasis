@@ -58,10 +58,10 @@ function ClientFormModal({
     try {
       if (isEdit && client) {
         await clientApi.update(client.id, values)
-        showToast('Client updated successfully.')
+        showToast('Patient updated successfully.')
       } else {
         await clientApi.create(values)
-        showToast('Client created successfully.')
+        showToast('Patient created successfully.')
       }
       onSaved()
       onClose()
@@ -71,7 +71,7 @@ function ClientFormModal({
   }
 
   return (
-    <Modal isOpen onClose={onClose} title={isEdit ? 'Edit Client' : 'Add New Client'} size="md">
+    <Modal isOpen onClose={onClose} title={isEdit ? 'Edit Patient' : 'Add New Patient'} size="md">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {/* Name */}
         <div>
@@ -136,7 +136,7 @@ function ClientFormModal({
           </button>
           <button type="submit" disabled={isSubmitting} className="btn-primary text-sm">
             {isSubmitting ? <LoadingSpinner size="sm" /> : <Save size={14} />}
-            {isSubmitting ? 'Saving...' : isEdit ? 'Update Client' : 'Add Client'}
+            {isSubmitting ? 'Saving...' : isEdit ? 'Update Patient' : 'Add Patient'}
           </button>
         </div>
       </form>
@@ -173,7 +173,7 @@ function ClientDetailModal({
   }, [clientId])
 
   return (
-    <Modal isOpen onClose={onClose} title="Client Details" size="lg">
+    <Modal isOpen onClose={onClose} title="Patient Details" size="lg">
       {loading ? (
         <PageLoader />
       ) : error ? (
@@ -229,7 +229,7 @@ function ClientDetailModal({
               Appointment History ({appointments.length})
             </h3>
             {appointments.length === 0 ? (
-              <p className="text-sm text-gray-500 py-4 text-center">No appointments on record for this client.</p>
+              <p className="text-sm text-gray-500 py-4 text-center">No appointments on record for this patient.</p>
             ) : (
               <ul className="space-y-2 max-h-64 overflow-y-auto">
                 {appointments.map((appt: any) => (
@@ -258,7 +258,7 @@ function ClientDetailModal({
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={onClose} className="btn-ghost text-sm">Close</button>
             <button onClick={() => { onEdit(client); onClose() }} className="btn-primary text-sm">
-              <Edit2 size={14} /> Edit Client
+              <Edit2 size={14} /> Edit Patient
             </button>
           </div>
         </div>
@@ -300,7 +300,7 @@ export default function ClientsPage() {
   }, [page, search])
 
   useEffect(() => {
-    document.title = 'Clients | Dental Oasis Admin'
+    document.title = 'Patients | Dental Oasis Admin'
   }, [])
 
   useEffect(() => {
@@ -320,7 +320,7 @@ export default function ClientsPage() {
     setDeleting(true)
     try {
       await clientApi.delete(deleteId)
-      showToast('Client deleted successfully.')
+      showToast('Patient deleted successfully.')
       setDeleteId(null)
       load()
     } catch (e) {
@@ -343,12 +343,12 @@ export default function ClientsPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Clients</h1>
+          <h1 className="text-2xl font-bold text-white">Patients</h1>
           <p className="text-sm text-gray-400 mt-1">Manage patient records and appointment history</p>
         </div>
         <button onClick={() => setFormClient(null)} className="btn-primary text-sm">
           <Plus size={16} />
-          Add Client
+          Add Patient
         </button>
       </div>
 
@@ -380,18 +380,18 @@ export default function ClientsPage() {
         <ErrorState message={error} onRetry={load} />
       ) : clients.length === 0 ? (
         <EmptyState
-          title={search ? 'No clients match your search.' : 'No clients found.'}
-          description={search ? 'Try a different name or contact number.' : 'Add your first client to get started.'}
+          title={search ? 'No patients match your search.' : 'No patients found.'}
+          description={search ? 'Try a different name or contact number.' : 'Add your first patient to get started.'}
           action={!search ? (
             <button onClick={() => setFormClient(null)} className="btn-primary text-sm">
-              <Plus size={16} /> Add Client
+              <Plus size={16} /> Add Patient
             </button>
           ) : undefined}
         />
       ) : (
         <>
           <div className="card overflow-x-auto p-0">
-            <table className="w-full text-sm" aria-label="Clients table">
+            <table className="w-full text-sm" aria-label="Patients table">
               <thead>
                 <tr className="border-b border-dark-500">
                   {['Name', 'Contact', 'Address', 'Added', 'Actions'].map((h) => (
@@ -471,7 +471,7 @@ export default function ClientsPage() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Client"
+        title="Delete Patient"
         message={`Are you sure you want to delete "${deleteName}"? This will permanently remove their record. This action cannot be undone.`}
         isLoading={deleting}
       />

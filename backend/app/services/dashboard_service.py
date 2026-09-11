@@ -18,6 +18,11 @@ def get_dashboard_stats(db: Session) -> Dict[str, Any]:
     total_clients = db.query(func.count(Client.id)).scalar() or 0
     total_appointments = db.query(func.count(Appointment.id)).scalar() or 0
 
+    # Sum all non-null payment amounts across all appointments
+    total_payments = float(
+        db.query(func.coalesce(func.sum(Appointment.payment_amount), 0)).scalar() or 0
+    )
+
     def count_by_status(status: AppointmentStatus) -> int:
         return db.query(func.count(Appointment.id)).filter(
             Appointment.status == status.value
@@ -73,6 +78,7 @@ def get_dashboard_stats(db: Session) -> Dict[str, Any]:
     return {
         "total_clients": total_clients,
         "total_appointments": total_appointments,
+        "total_payments": total_payments,
         "pending_appointments": pending,
         "contacted_appointments": contacted,
         "confirmed_appointments": confirmed,

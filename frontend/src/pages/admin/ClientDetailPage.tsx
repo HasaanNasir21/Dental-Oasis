@@ -150,13 +150,13 @@ export default function ClientDetailPage() {
   }, [id])
 
   useEffect(() => {
-    document.title = 'Client Profile | Dental Oasis Admin'
+    document.title = 'Patient Profile | Dental Oasis Admin'
     load()
   }, [load])
 
   if (loading) return <PageLoader />
   if (error) return <div className="p-6"><ErrorState message={error} onRetry={load} /></div>
-  if (!client) return <div className="p-6"><EmptyState title="Client not found." /></div>
+  if (!client) return <div className="p-6"><EmptyState title="Patient not found." /></div>
 
   const wa = `https://wa.me/${client.contact_number.replace(/\D/g, '')}`
 
@@ -167,13 +167,13 @@ export default function ClientDetailPage() {
         onClick={() => navigate('/admin/clients')}
         className="btn-ghost text-sm mb-4"
       >
-        <ArrowLeft size={16} /> Back to clients
+        <ArrowLeft size={16} /> Back to patients
       </button>
 
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">{client.name}</h1>
-          <p className="text-sm text-gray-400 mt-1">Client profile and appointment history</p>
+          <p className="text-sm text-gray-400 mt-1">Patient profile and appointment history</p>
         </div>
         <button type="button" onClick={() => setShowForm(true)} className="btn-primary text-sm">
           <Plus size={16} /> New Appointment
@@ -181,7 +181,7 @@ export default function ClientDetailPage() {
       </div>
 
       <section className="card mb-6">
-        <h2 className="text-base font-semibold text-white mb-4">Client Information</h2>
+        <h2 className="text-base font-semibold text-white mb-4">Patient Information</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <dt className="text-xs text-gray-500">Name</dt>
@@ -191,10 +191,10 @@ export default function ClientDetailPage() {
             <dt className="text-xs text-gray-500">Contact Number</dt>
             <dd className="flex items-center gap-2 text-white font-medium">
               {client.contact_number}
-              <a href={`tel:${client.contact_number}`} className="text-green-400" aria-label="Call client">
+              <a href={`tel:${client.contact_number}`} className="text-green-400" aria-label="Call patient">
                 <Phone size={14} />
               </a>
-              <a href={wa} target="_blank" rel="noopener noreferrer" className="text-teal-400" aria-label="WhatsApp client">
+              <a href={wa} target="_blank" rel="noopener noreferrer" className="text-teal-400" aria-label="WhatsApp patient">
                 <MessageCircle size={14} />
               </a>
             </dd>
@@ -221,7 +221,7 @@ export default function ClientDetailPage() {
         </h2>
         {appointments.length === 0 ? (
           <EmptyState
-            title="No appointments on record for this client."
+            title="No appointments on record for this patient."
             action={
               <button type="button" onClick={() => setShowForm(true)} className="btn-primary text-sm">
                 Create Appointment

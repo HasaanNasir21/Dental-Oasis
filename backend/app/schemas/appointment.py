@@ -1,6 +1,7 @@
 from pydantic import BaseModel, field_validator, model_validator
 from typing import Optional
 from datetime import datetime, date, time
+from decimal import Decimal
 from app.models.appointment import AppointmentStatus, AppointmentReason
 import re
 
@@ -89,6 +90,7 @@ class AppointmentCreate(BaseModel):
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
     notes: Optional[str] = None
+    payment_amount: Optional[Decimal] = None
 
     @field_validator("patient_name")
     @classmethod
@@ -125,6 +127,7 @@ class AppointmentUpdate(BaseModel):
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
     notes: Optional[str] = None
+    payment_amount: Optional[Decimal] = None
 
     @field_validator("patient_name")
     @classmethod
@@ -164,6 +167,7 @@ class AppointmentOut(BaseModel):
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
     notes: Optional[str] = None
+    payment_amount: Optional[Decimal] = None
     created_at: datetime
     updated_at: datetime
 

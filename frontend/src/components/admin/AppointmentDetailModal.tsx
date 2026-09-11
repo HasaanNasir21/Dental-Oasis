@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Phone, MessageCircle, Save, AlertCircle } from 'lucide-react'
+import { Phone, MessageCircle, Save, AlertCircle, DollarSign } from 'lucide-react'
 import Modal from '../ui/Modal'
 import LoadingSpinner, { PageLoader } from '../ui/LoadingSpinner'
 import { appointmentApi } from '../../services/appointmentApi'
@@ -18,6 +18,14 @@ const schema = z.object({
   appointment_time: z.string().optional().or(z.literal('')),
   reason: z.string().optional(),
   notes: z.string().max(5000).optional().or(z.literal('')),
+  payment_amount: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine(
+      (v) => !v || /^\d+(\.\d{1,2})?$/.test(v),
+      { message: 'Enter a valid amount (e.g. 1500 or 1500.00)' }
+    ),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -35,7 +43,7 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
   const [formError, setFormError] = useState<string | null>(null)
   const { showToast } = useToast()
 
-  const { register, handleSubmit, reset } = useForm<FormValues>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   })
 
@@ -50,6 +58,7 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
             appointment_time: r.data.appointment_time || '',
             reason: r.data.reason,
             notes: r.data.notes || '',
+            payment_amount: r.data.payment_amount != null ? String(r.data.payment_amount) : '',
           })
         }
       })
@@ -68,6 +77,7 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
         appointment_time: values.appointment_time || null,
         reason: values.reason,
         notes: values.notes || undefined,
+        payment_amount: values.payment_amount ? parseFloat(values.payment_amount) : null,
       })
       showToast('Appointment updated successfully.')
       onUpdated()
@@ -178,6 +188,37 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
             <div>
               <label className="label text-xs" htmlFor="appt-notes">Notes</label>
               <textarea id="appt-notes" rows={3} className="input text-sm resize-none" placeholder="Internal notes..." {...register('notes')} />
+            </div>
+
+            {/* Payment */}
+            <div className="p-4 bg-dark-700 rounded-xl border border-dark-500">
+              <div className="flex items-center gap-2 mb-3">
+                <DollarSign size={15} className="text-emerald-400" />
+                <p className="text-sm font-semibold text-white">Payment</p>
+                <span className="text-xs text-gray-500 ml-1">(optional)</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium pointer-events-none">
+                  Rs.
+                </span>
+                <input
+                  id="appt-payment"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className={`input text-sm pl-10 ${errors.payment_amount ? 'border-red-500' : ''}`}
+                  placeholder="Enter amount paid"
+                  {...register('payment_amount')}
+                />
+              </div>
+              {errors.payment_amount && (
+                <p className="text-xs text-red-400 mt-1">{errors.payment_amount.message}</p>
+              )}
+              {appt.payment_amount != null && (
+                <p className="text-xs text-emerald-400 mt-2">
+                  Current: Rs. {Number(appt.payment_amount).toLocaleString()}
+                </p>
+              )}
             </div>
 
             {formError && (

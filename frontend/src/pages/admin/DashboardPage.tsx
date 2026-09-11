@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Users, Calendar, Clock, CheckCircle, AlertCircle,
-  TrendingUp, ChevronRight,
+  TrendingUp, ChevronRight, DollarSign,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { dashboardApi } from '../../services/dashboardApi'
@@ -15,7 +15,7 @@ import { parseApiError, formatDate, formatTime } from '../../utils/errorHandler'
 const PIE_COLORS = ['#f59e0b', '#3b82f6', '#22c55e', '#14b8a6', '#ef4444', '#6b7280']
 
 function StatCard({ icon: Icon, label, value, color, to }: {
-  icon: typeof Users; label: string; value: number; color: string; to?: string
+  icon: typeof Users; label: string; value: string | number; color: string; to?: string
 }) {
   const content = (
     <div className="card hover:border-primary-500/30 transition-colors">
@@ -57,8 +57,9 @@ export default function DashboardPage() {
   if (!stats) return null
 
   const statCards = [
-    { icon: Users, label: 'Total Clients', value: stats.total_clients, color: 'bg-primary-600', to: '/admin/clients' },
+    { icon: Users, label: 'Total Patients', value: stats.total_clients, color: 'bg-primary-600', to: '/admin/clients' },
     { icon: Calendar, label: 'Total Appointments', value: stats.total_appointments, color: 'bg-teal-600', to: '/admin/appointments' },
+    { icon: DollarSign, label: 'Total Payments', value: `Rs. ${Number(stats.total_payments).toLocaleString()}`, color: 'bg-emerald-600' },
     { icon: AlertCircle, label: 'Pending Requests', value: stats.pending_appointments, color: 'bg-yellow-600' },
     { icon: CheckCircle, label: 'Confirmed', value: stats.confirmed_appointments, color: 'bg-green-600' },
     { icon: Clock, label: "Today's Appointments", value: stats.today_appointments.length, color: 'bg-blue-600' },
@@ -73,7 +74,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-7 gap-4">
         {statCards.map((s) => (
           <StatCard key={s.label} {...s} />
         ))}

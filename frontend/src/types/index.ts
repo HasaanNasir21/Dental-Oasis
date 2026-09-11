@@ -87,6 +87,7 @@ export interface Appointment {
   appointment_date: string | null
   appointment_time: string | null
   notes: string | null
+  payment_amount: number | null
   created_at: string
   updated_at: string
 }
@@ -135,6 +136,7 @@ export interface AppointmentUpdate {
   appointment_date?: string | null
   appointment_time?: string | null
   notes?: string
+  payment_amount?: number | null
 }
 
 // ---- Client ----
@@ -228,6 +230,7 @@ export interface ClinicInfo {
 export interface DashboardStats {
   total_clients: number
   total_appointments: number
+  total_payments: number
   pending_appointments: number
   contacted_appointments: number
   confirmed_appointments: number

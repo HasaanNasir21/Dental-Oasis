@@ -3,6 +3,7 @@ from sqlalchemy import or_, case
 from typing import Optional, List, Tuple
 from datetime import date, time, datetime, timedelta, timezone
 from app.models.appointment import Appointment, AppointmentStatus
+from app.models.client import Client
 from app.schemas.appointment import PublicAppointmentCreate, AppointmentCreate, AppointmentUpdate
 from app.utils.exceptions import NotFoundError, AppointmentConflictError, ConflictError
 from app.utils.validators import validate_appointment_datetime
@@ -89,6 +90,7 @@ def create_admin_appointment(db: Session, data: AppointmentCreate) -> Appointmen
         appointment_date=data.appointment_date,
         appointment_time=data.appointment_time,
         notes=data.notes,
+        payment_amount=data.payment_amount,
     )
     db.add(appointment)
     db.commit()
@@ -102,6 +104,41 @@ def get_appointment_by_id(db: Session, appointment_id: int) -> Appointment:
     if not appointment:
         raise NotFoundError(f"Appointment not found.")
     return appointment
+
+
+def _ensure_patient_record(db: Session, appointment: Appointment) -> None:
+    """
+    When an appointment is confirmed, ensure a patient (client) record exists
+    for that person. Looks up by contact_number first to avoid duplicates.
+    Links the appointment to the found/created client if not already linked.
+    """
+    if appointment.client_id:
+        return  # already linked to a patient record
+
+    existing = (
+        db.query(Client)
+        .filter(Client.contact_number == appointment.contact_number)
+        .first()
+    )
+    if existing:
+        appointment.client_id = existing.id
+        logger.info(
+            "Linked appointment id=%s to existing patient id=%s",
+            appointment.id, existing.id,
+        )
+    else:
+        client = Client(
+            name=appointment.patient_name,
+            contact_number=appointment.contact_number,
+            address=appointment.address,
+        )
+        db.add(client)
+        db.flush()  # get the new id without a full commit
+        appointment.client_id = client.id
+        logger.info(
+            "Auto-created patient id=%s for appointment id=%s",
+            client.id, appointment.id,
+        )
 
 
 def update_appointment(db: Session, appointment_id: int, data: AppointmentUpdate) -> Appointment:
@@ -125,6 +162,10 @@ def update_appointment(db: Session, appointment_id: int, data: AppointmentUpdate
 
     for field, value in update_data.items():
         setattr(appointment, field, value)
+
+    # Auto-create patient record when appointment is confirmed
+    if appointment.status == AppointmentStatus.CONFIRMED:
+        _ensure_patient_record(db, appointment)
 
     db.commit()
     db.refresh(appointment)

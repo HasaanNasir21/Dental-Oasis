@@ -12,7 +12,7 @@ const navItems = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/appointments', label: 'Appointments', icon: ClipboardList },
   { to: '/admin/calendar', label: 'Calendar', icon: Calendar },
-  { to: '/admin/clients', label: 'Clients', icon: Users },
+  { to: '/admin/clients', label: 'Patients', icon: Users },
   { to: '/admin/testimonials', label: 'Testimonials', icon: MessageSquare },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]
