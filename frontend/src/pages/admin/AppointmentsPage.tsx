@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Search, X, Eye, Trash2 } from 'lucide-react'
+import { Search, X, Eye, Trash2, MessageSquare, Share2, Copy, Check } from 'lucide-react'
 import { appointmentApi } from '../../services/appointmentApi'
 import type { AppointmentListItem, PaginationMeta } from '../../types'
 import { APPOINTMENT_REASONS, APPOINTMENT_STATUSES } from '../../types'
@@ -9,10 +9,111 @@ import EmptyState from '../../components/ui/EmptyState'
 import StatusBadge from '../../components/ui/StatusBadge'
 import Pagination from '../../components/ui/Pagination'
 import ConfirmModal from '../../components/ui/ConfirmModal'
+import Modal from '../../components/ui/Modal'
 import AppointmentDetailModal from '../../components/admin/AppointmentDetailModal'
 import { parseApiError, formatDate, formatTime } from '../../utils/errorHandler'
 import { useToast } from '../../context/ToastContext'
 import { getStatusLabel } from '../../utils/statusHelpers'
+
+// ---- Message Modal ----
+function AppointmentMessageModal({
+  appt,
+  onClose,
+}: {
+  appt: AppointmentListItem
+  onClose: () => void
+}) {
+  const [copied, setCopied] = useState(false)
+
+  const message = [
+    `Assalam o Alaikum ${appt.patient_name},`,
+    ``,
+    `Your appointment at Dental Oasis has been confirmed.`,
+    ``,
+    `Reason: ${appt.reason}`,
+    `Date: ${appt.appointment_date ? formatDate(appt.appointment_date) : '—'}`,
+    `Time: ${appt.appointment_time ? formatTime(appt.appointment_time) : '—'}`,
+    ``,
+    `Please arrive on time.`,
+    `- Dental Oasis`,
+  ].join('\n')
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback for older browsers
+      const el = document.createElement('textarea')
+      el.value = message
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: message })
+      } catch {
+        // user cancelled share — do nothing
+      }
+    } else {
+      // Fallback: open WhatsApp web with the message pre-filled
+      const encoded = encodeURIComponent(message)
+      window.open(`https://wa.me/?text=${encoded}`, '_blank')
+    }
+  }
+
+  return (
+    <Modal isOpen onClose={onClose} title="Confirmation Message" size="md">
+      <div className="space-y-4">
+        <p className="text-xs text-gray-400">
+          Message is ready to send. Copy it or use the Share button to send via WhatsApp, SMS, or any app.
+        </p>
+
+        {/* Message preview */}
+        <div className="bg-dark-700 border border-dark-500 rounded-xl p-4">
+          <pre className="text-sm text-gray-200 whitespace-pre-wrap font-sans leading-relaxed">
+            {message}
+          </pre>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 justify-end pt-1">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-ghost text-sm"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="btn-ghost text-sm flex items-center gap-2"
+          >
+            {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+          <button
+            type="button"
+            onClick={handleShare}
+            className="btn-primary text-sm flex items-center gap-2"
+          >
+            <Share2 size={14} />
+            Share
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentListItem[]>([])
@@ -30,6 +131,7 @@ export default function AppointmentsPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [messageAppt, setMessageAppt] = useState<AppointmentListItem | null>(null)
 
   const searchTimer = useRef<ReturnType<typeof setTimeout>>()
   const { showToast } = useToast()
@@ -209,6 +311,17 @@ export default function AppointmentsPage() {
                         >
                           <Eye size={15} />
                         </button>
+                        {/* Message button — only for CONFIRMED appointments with date & time */}
+                        {appt.status === 'CONFIRMED' && appt.appointment_date && appt.appointment_time && (
+                          <button
+                            onClick={() => setMessageAppt(appt)}
+                            className="p-1.5 rounded text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                            aria-label={`Send confirmation message to ${appt.patient_name}`}
+                            title="Send confirmation message"
+                          >
+                            <MessageSquare size={15} />
+                          </button>
+                        )}
                         <button
                           onClick={() => setDeleteId(appt.id)}
                           className="p-1.5 rounded text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
@@ -236,6 +349,14 @@ export default function AppointmentsPage() {
           appointmentId={selectedId}
           onClose={() => setSelectedId(null)}
           onUpdated={load}
+        />
+      )}
+
+      {/* Message modal */}
+      {messageAppt && (
+        <AppointmentMessageModal
+          appt={messageAppt}
+          onClose={() => setMessageAppt(null)}
         />
       )}
 
