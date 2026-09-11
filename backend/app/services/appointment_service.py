@@ -108,23 +108,26 @@ def get_appointment_by_id(db: Session, appointment_id: int) -> Appointment:
 
 def _ensure_patient_record(db: Session, appointment: Appointment) -> None:
     """
-    When an appointment is confirmed, ensure a patient (client) record exists
-    for that person. Looks up by contact_number first to avoid duplicates.
-    Links the appointment to the found/created client if not already linked.
+    When an appointment is confirmed, ensure a patient (client) record exists.
+    Deduplication rule: same name AND same contact_number = same patient.
+    Same contact but different name = different patient (create new).
     """
     if appointment.client_id:
         return  # already linked to a patient record
 
     existing = (
         db.query(Client)
-        .filter(Client.contact_number == appointment.contact_number)
+        .filter(
+            Client.contact_number == appointment.contact_number,
+            Client.name == appointment.patient_name,
+        )
         .first()
     )
     if existing:
         appointment.client_id = existing.id
         logger.info(
-            "Linked appointment id=%s to existing patient id=%s",
-            appointment.id, existing.id,
+            "Linked appointment id=%s to existing patient id=%s (%s)",
+            appointment.id, existing.id, existing.name,
         )
     else:
         client = Client(
@@ -133,11 +136,11 @@ def _ensure_patient_record(db: Session, appointment: Appointment) -> None:
             address=appointment.address,
         )
         db.add(client)
-        db.flush()  # get the new id without a full commit
+        db.flush()
         appointment.client_id = client.id
         logger.info(
-            "Auto-created patient id=%s for appointment id=%s",
-            client.id, appointment.id,
+            "Auto-created patient id=%s (%s) for appointment id=%s",
+            client.id, client.name, appointment.id,
         )
 
 

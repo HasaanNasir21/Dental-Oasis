@@ -38,10 +38,13 @@ def backfill():
         linked = 0
 
         for appt in appointments:
-            # Check if a patient with this contact already exists
+            # Deduplicate by name + contact (same contact but different name = new patient)
             existing = (
                 db.query(Client)
-                .filter(Client.contact_number == appt.contact_number)
+                .filter(
+                    Client.contact_number == appt.contact_number,
+                    Client.name == appt.patient_name,
+                )
                 .first()
             )
             if existing:
