@@ -15,6 +15,13 @@ from app.services import monthly_payment_service
 router = APIRouter(prefix="/api/admin/payments", tags=["Admin - Monthly Payments"])
 
 
+def _fix_decimal_fields(obj: dict, fields: tuple) -> None:
+    """Convert Decimal-serialized string values to floats in-place."""
+    for field in fields:
+        if obj.get(field) is not None:
+            obj[field] = float(obj[field])
+
+
 @router.get("/history", response_model=SuccessResponse)
 def get_payment_history(
     db: Session = Depends(get_db),
@@ -25,7 +32,12 @@ def get_payment_history(
     clinic-wide totals.
     """
     data = monthly_payment_service.get_monthly_history(db)
-    return SuccessResponse(success=True, message="OK", data=data.model_dump(mode="json"))
+    raw = data.model_dump(mode="json")
+    # Convert Decimal-serialized strings to floats for proper JSON numbers
+    _fix_decimal_fields(raw.get("current_month", {}), ("total_charged", "total_paid", "total_pending"))
+    for item in raw.get("archived_months", []):
+        _fix_decimal_fields(item, ("total_charged", "total_paid", "total_pending"))
+    return SuccessResponse(success=True, message="OK", data=raw)
 
 
 @router.get("/current-month", response_model=SuccessResponse)
@@ -35,7 +47,9 @@ def get_current_month(
 ):
     """Live payment totals for the current calendar month."""
     data = monthly_payment_service.get_current_month_payments(db)
-    return SuccessResponse(success=True, message="OK", data=data.model_dump(mode="json"))
+    raw = data.model_dump(mode="json")
+    _fix_decimal_fields(raw, ("total_charged", "total_paid", "total_pending"))
+    return SuccessResponse(success=True, message="OK", data=raw)
 
 
 @router.get("/client/{client_id}", response_model=SuccessResponse)
@@ -47,7 +61,11 @@ def get_patient_history(
 ):
     """Archived monthly payment summaries for a single patient."""
     summaries = monthly_payment_service.get_patient_monthly_summaries(db, client_id, limit)
-    data = [MonthlyPaymentSummaryOut.model_validate(s).model_dump(mode="json") for s in summaries]
+    data = []
+    for s in summaries:
+        row = MonthlyPaymentSummaryOut.model_validate(s).model_dump(mode="json")
+        _fix_decimal_fields(row, ("total_charged", "total_paid", "total_pending"))
+        data.append(row)
     return SuccessResponse(success=True, message="OK", data=data)
 
 

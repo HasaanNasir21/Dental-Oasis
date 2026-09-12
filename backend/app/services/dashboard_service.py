@@ -15,7 +15,13 @@ from app.services.monthly_payment_service import (
 
 
 def _serialize_appointment(a: Appointment) -> dict:
-    return AppointmentOut.model_validate(a).model_dump(mode="json")
+    row = AppointmentOut.model_validate(a).model_dump(mode="json")
+    # Decimal fields come out as strings from model_dump(mode="json").
+    # Convert them to float so the frontend receives proper JSON numbers.
+    for field in ("total_amount", "amount_paid"):
+        if row.get(field) is not None:
+            row[field] = float(row[field])
+    return row
 
 
 def get_dashboard_stats(db: Session) -> Dict[str, Any]:

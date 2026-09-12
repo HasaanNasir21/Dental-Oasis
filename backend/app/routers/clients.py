@@ -77,8 +77,16 @@ def get_client_appointments(
 ):
     client_service.get_client_by_id(db, client_id)  # Ensure client exists
     appointments = appointment_service.get_client_appointments(db, client_id)
-    data = [AppointmentOut.model_validate(a).model_dump(mode="json") for a in appointments]
-    return SuccessResponse(success=True, message="OK", data=data)
+    rows = []
+    for a in appointments:
+        row = AppointmentOut.model_validate(a).model_dump(mode="json")
+        # Decimal fields are serialized as strings by model_dump(mode="json").
+        # Convert them to float so the frontend receives proper JSON numbers.
+        for field in ("total_amount", "amount_paid"):
+            if row.get(field) is not None:
+                row[field] = float(row[field])
+        rows.append(row)
+    return SuccessResponse(success=True, message="OK", data=rows)
 
 
 @router.post("/{client_id}/appointments", response_model=SuccessResponse[AppointmentOut], status_code=201)

@@ -36,5 +36,11 @@ def calendar(
 
     from app.services.appointment_service import get_calendar_appointments
     appointments = get_calendar_appointments(db, s, e)
-    data = [AppointmentOut.model_validate(a).model_dump(mode="json") for a in appointments]
+    data = []
+    for a in appointments:
+        row = AppointmentOut.model_validate(a).model_dump(mode="json")
+        for field in ("total_amount", "amount_paid"):
+            if row.get(field) is not None:
+                row[field] = float(row[field])
+        data.append(row)
     return SuccessResponse(success=True, message="OK", data=data)
