@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Users, Calendar, Clock, CheckCircle, AlertCircle,
-  TrendingUp, ChevronRight, DollarSign, CreditCard, Wallet, AlertTriangle,
+  TrendingUp, ChevronRight,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts'
 import { dashboardApi } from '../../services/dashboardApi'
-import type { DashboardStats, Appointment, ClinicMonthlyTotals } from '../../types'
+import type { DashboardStats, Appointment } from '../../types'
 import { PageLoader } from '../../components/ui/LoadingSpinner'
 import ErrorState from '../../components/ui/ErrorState'
 import StatusBadge from '../../components/ui/StatusBadge'
@@ -42,97 +42,6 @@ function StatCard({
     </div>
   )
   return to ? <Link to={to} className="block">{content}</Link> : <div>{content}</div>
-}
-
-function PaymentTrioCard({
-  label,
-  charged,
-  paid,
-  pending,
-  subLabel,
-}: {
-  label: string
-  charged: number
-  paid: number
-  pending: number
-  subLabel?: string
-}) {
-  const fmt = (n: number) => `Rs. ${Number(n).toLocaleString()}`
-  return (
-    <div className="card">
-      <div className="flex items-center gap-2 mb-4">
-        <CreditCard size={16} className="text-emerald-400" />
-        <h2 className="text-base font-semibold text-white">{label}</h2>
-        {subLabel && <span className="text-xs text-gray-500 ml-1">({subLabel})</span>}
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-dark-700 rounded-xl p-3 text-center border border-dark-500">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <TrendingUp size={12} className="text-blue-400" />
-            <p className="text-xs text-gray-400">Charged</p>
-          </div>
-          <p className="text-lg font-bold text-blue-300">{fmt(charged)}</p>
-        </div>
-        <div className="bg-dark-700 rounded-xl p-3 text-center border border-dark-500">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Wallet size={12} className="text-emerald-400" />
-            <p className="text-xs text-gray-400">Paid</p>
-          </div>
-          <p className="text-lg font-bold text-emerald-300">{fmt(paid)}</p>
-        </div>
-        <div className="bg-dark-700 rounded-xl p-3 text-center border border-dark-500">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <AlertTriangle size={12} className="text-amber-400" />
-            <p className="text-xs text-gray-400">Pending</p>
-          </div>
-          <p className={`text-lg font-bold ${pending > 0 ? 'text-amber-300' : 'text-gray-500'}`}>
-            {pending > 0 ? fmt(pending) : '—'}
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ArchivedMonthsTable({ months }: { months: ClinicMonthlyTotals[] }) {
-  const fmt = (n: number) => `Rs. ${Number(n).toLocaleString()}`
-  if (months.length === 0) {
-    return (
-      <p className="text-sm text-gray-500 py-4 text-center">
-        No archived months yet. The first archive runs automatically on the 1st of next month.
-      </p>
-    )
-  }
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-dark-500 text-left text-xs text-gray-400 uppercase">
-            <th className="py-2 pr-4">Month</th>
-            <th className="py-2 pr-4 text-right">Charged</th>
-            <th className="py-2 pr-4 text-right">Paid</th>
-            <th className="py-2 pr-4 text-right">Pending</th>
-            <th className="py-2 pr-4 text-right">Patients</th>
-            <th className="py-2 text-right">Appts</th>
-          </tr>
-        </thead>
-        <tbody>
-          {months.map((m) => (
-            <tr key={`${m.year}-${m.month}`} className="border-b border-dark-600 hover:bg-dark-700/40">
-              <td className="py-2.5 pr-4 text-white font-medium">{m.month_label}</td>
-              <td className="py-2.5 pr-4 text-right text-blue-300">{fmt(m.total_charged)}</td>
-              <td className="py-2.5 pr-4 text-right text-emerald-300">{fmt(m.total_paid)}</td>
-              <td className={`py-2.5 pr-4 text-right font-medium ${m.total_pending > 0 ? 'text-amber-300' : 'text-gray-500'}`}>
-                {m.total_pending > 0 ? fmt(m.total_pending) : '—'}
-              </td>
-              <td className="py-2.5 pr-4 text-right text-gray-300">{m.patient_count}</td>
-              <td className="py-2.5 text-right text-gray-300">{m.appointment_count}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
 }
 
 export default function DashboardPage() {
@@ -211,31 +120,6 @@ export default function DashboardPage() {
         {statCards.map((s) => (
           <StatCard key={s.label} {...s} />
         ))}
-      </div>
-
-      {/* ── Payment section ────────────────────────────────────────── */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <DollarSign size={18} className="text-emerald-400" />
-          <h2 className="text-lg font-semibold text-white">Payments</h2>
-        </div>
-
-        <div className="mb-4">
-          {/* Current month */}
-          <PaymentTrioCard
-            label="This Month"
-            subLabel={stats.current_month_label}
-            charged={stats.current_month_charged}
-            paid={stats.current_month_paid}
-            pending={stats.current_month_pending}
-          />
-        </div>
-
-        {/* Monthly history table */}
-        <div className="card">
-          <h3 className="text-base font-semibold text-white mb-4">Monthly Payment History</h3>
-          <ArchivedMonthsTable months={stats.archived_months} />
-        </div>
       </div>
 
       {/* ── Charts row ─────────────────────────────────────────────── */}

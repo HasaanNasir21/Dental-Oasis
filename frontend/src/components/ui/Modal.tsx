@@ -49,8 +49,8 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
         aria-hidden="true"
       />
       {/* Panel */}
-      <div className={`relative w-full ${sizes[size]} bg-dark-700 border border-dark-500 rounded-xl shadow-2xl animate-fade-in`}>
-        <div className="flex items-center justify-between p-5 border-b border-dark-500">
+      <div className={`relative w-full ${sizes[size]} bg-dark-700 border border-dark-500 rounded-xl shadow-2xl animate-fade-in flex flex-col max-h-[90vh]`}>
+        <div className="flex items-center justify-between p-5 border-b border-dark-500 flex-shrink-0">
           <h2 id="modal-title" className="text-lg font-semibold text-white">{title}</h2>
           <button
             onClick={onClose}
@@ -60,7 +60,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
             <X size={18} />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-5 overflow-y-auto">{children}</div>
       </div>
     </div>
   )
