@@ -220,7 +220,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold text-white">Payments</h2>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <div className="mb-4">
           {/* Current month */}
           <PaymentTrioCard
             label="This Month"
@@ -228,13 +228,6 @@ export default function DashboardPage() {
             charged={stats.current_month_charged}
             paid={stats.current_month_paid}
             pending={stats.current_month_pending}
-          />
-          {/* All-time */}
-          <PaymentTrioCard
-            label="All Time"
-            charged={stats.all_time_charged}
-            paid={stats.all_time_paid}
-            pending={stats.all_time_pending}
           />
         </div>
 
