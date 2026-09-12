@@ -90,7 +90,8 @@ def create_admin_appointment(db: Session, data: AppointmentCreate) -> Appointmen
         appointment_date=data.appointment_date,
         appointment_time=data.appointment_time,
         notes=data.notes,
-        payment_amount=data.payment_amount,
+        total_amount=data.total_amount,
+        amount_paid=data.amount_paid,
     )
     db.add(appointment)
     db.commit()

@@ -90,7 +90,8 @@ class AppointmentCreate(BaseModel):
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
     notes: Optional[str] = None
-    payment_amount: Optional[Decimal] = None
+    total_amount: Optional[Decimal] = None
+    amount_paid: Optional[Decimal] = None
 
     @field_validator("patient_name")
     @classmethod
@@ -115,6 +116,13 @@ class AppointmentCreate(BaseModel):
             raise ValueError(f"Invalid reason.")
         return v
 
+    @field_validator("total_amount", "amount_paid")
+    @classmethod
+    def validate_positive(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        if v is not None and v < 0:
+            raise ValueError("Amount must be zero or positive.")
+        return v
+
 
 class AppointmentUpdate(BaseModel):
     client_id: Optional[int] = None
@@ -127,7 +135,8 @@ class AppointmentUpdate(BaseModel):
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
     notes: Optional[str] = None
-    payment_amount: Optional[Decimal] = None
+    total_amount: Optional[Decimal] = None
+    amount_paid: Optional[Decimal] = None
 
     @field_validator("patient_name")
     @classmethod
@@ -154,6 +163,13 @@ class AppointmentUpdate(BaseModel):
                 raise ValueError("Invalid reason.")
         return v
 
+    @field_validator("total_amount", "amount_paid")
+    @classmethod
+    def validate_positive(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        if v is not None and v < 0:
+            raise ValueError("Amount must be zero or positive.")
+        return v
+
 
 class AppointmentOut(BaseModel):
     id: int
@@ -167,7 +183,8 @@ class AppointmentOut(BaseModel):
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
     notes: Optional[str] = None
-    payment_amount: Optional[Decimal] = None
+    total_amount: Optional[Decimal] = None
+    amount_paid: Optional[Decimal] = None
     created_at: datetime
     updated_at: datetime
 
@@ -183,6 +200,8 @@ class AppointmentList(BaseModel):
     status: AppointmentStatus
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
+    total_amount: Optional[Decimal] = None
+    amount_paid: Optional[Decimal] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

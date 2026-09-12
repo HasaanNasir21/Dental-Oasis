@@ -4,6 +4,13 @@ from app.schemas.client import ClientCreate, ClientUpdate, ClientOut, ClientList
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate, AppointmentOut, AppointmentList
 from app.schemas.service import ServiceOut, ServiceList
 from app.schemas.testimonial import TestimonialCreate, TestimonialUpdate, TestimonialOut
+from app.schemas.monthly_summary import (
+    MonthlyPaymentSummaryOut,
+    ClinicMonthlyTotals,
+    CurrentMonthPayments,
+    MonthlyRolloverResult,
+    MonthlyHistoryResponse,
+)
 
 __all__ = [
     "PaginatedResponse", "SuccessResponse",
@@ -12,4 +19,6 @@ __all__ = [
     "AppointmentCreate", "AppointmentUpdate", "AppointmentOut", "AppointmentList",
     "ServiceOut", "ServiceList",
     "TestimonialCreate", "TestimonialUpdate", "TestimonialOut",
+    "MonthlyPaymentSummaryOut", "ClinicMonthlyTotals", "CurrentMonthPayments",
+    "MonthlyRolloverResult", "MonthlyHistoryResponse",
 ]

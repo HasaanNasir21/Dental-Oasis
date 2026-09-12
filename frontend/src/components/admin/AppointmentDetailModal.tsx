@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Phone, MessageCircle, Save, AlertCircle, DollarSign } from 'lucide-react'
+import { Phone, MessageCircle, Save, AlertCircle, DollarSign, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import Modal from '../ui/Modal'
 import LoadingSpinner, { PageLoader } from '../ui/LoadingSpinner'
 import { appointmentApi } from '../../services/appointmentApi'
@@ -12,27 +12,35 @@ import { parseApiError, formatDate } from '../../utils/errorHandler'
 import { getStatusLabel } from '../../utils/statusHelpers'
 import { useToast } from '../../context/ToastContext'
 
+const amountField = z
+  .string()
+  .optional()
+  .or(z.literal(''))
+  .refine((v) => !v || /^\d+(\.\d{1,2})?$/.test(v), {
+    message: 'Enter a valid amount (e.g. 1500 or 1500.00)',
+  })
+
 const schema = z.object({
   status: z.string(),
   appointment_date: z.string().optional().or(z.literal('')),
   appointment_time: z.string().optional().or(z.literal('')),
   reason: z.string().optional(),
   notes: z.string().max(5000).optional().or(z.literal('')),
-  payment_amount: z
-    .string()
-    .optional()
-    .or(z.literal(''))
-    .refine(
-      (v) => !v || /^\d+(\.\d{1,2})?$/.test(v),
-      { message: 'Enter a valid amount (e.g. 1500 or 1500.00)' }
-    ),
+  total_amount: amountField,
+  amount_paid: amountField,
 })
+
 type FormValues = z.infer<typeof schema>
 
 interface Props {
   appointmentId: number
   onClose: () => void
   onUpdated: () => void
+}
+
+function rs(val: number | null | undefined) {
+  if (val == null) return '—'
+  return `Rs. ${Number(val).toLocaleString()}`
 }
 
 export default function AppointmentDetailModal({ appointmentId, onClose, onUpdated }: Props) {
@@ -43,9 +51,19 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
   const [formError, setFormError] = useState<string | null>(null)
   const { showToast } = useToast()
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   })
+
+  // Live pending calculation from form values
+  const watchedTotal = watch('total_amount')
+  const watchedPaid = watch('amount_paid')
+  const livePending = (() => {
+    const t = parseFloat(watchedTotal || '0') || 0
+    const p = parseFloat(watchedPaid || '0') || 0
+    const diff = t - p
+    return diff > 0 ? diff : 0
+  })()
 
   useEffect(() => {
     appointmentApi.getById(appointmentId)
@@ -58,7 +76,8 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
             appointment_time: r.data.appointment_time || '',
             reason: r.data.reason,
             notes: r.data.notes || '',
-            payment_amount: r.data.payment_amount != null ? String(r.data.payment_amount) : '',
+            total_amount: r.data.total_amount != null ? String(r.data.total_amount) : '',
+            amount_paid: r.data.amount_paid != null ? String(r.data.amount_paid) : '',
           })
         }
       })
@@ -77,7 +96,8 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
         appointment_time: values.appointment_time || null,
         reason: values.reason,
         notes: values.notes || undefined,
-        payment_amount: values.payment_amount ? parseFloat(values.payment_amount) : null,
+        total_amount: values.total_amount ? parseFloat(values.total_amount) : null,
+        amount_paid: values.amount_paid ? parseFloat(values.amount_paid) : null,
       })
       showToast('Appointment updated successfully.')
       onUpdated()
@@ -187,38 +207,99 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
             {/* Notes */}
             <div>
               <label className="label text-xs" htmlFor="appt-notes">Notes</label>
-              <textarea id="appt-notes" rows={3} className="input text-sm resize-none" placeholder="Internal notes..." {...register('notes')} />
+              <textarea
+                id="appt-notes"
+                rows={3}
+                className="input text-sm resize-none"
+                placeholder="Internal notes..."
+                {...register('notes')}
+              />
             </div>
 
-            {/* Payment */}
-            <div className="p-4 bg-dark-700 rounded-xl border border-dark-500">
-              <div className="flex items-center gap-2 mb-3">
+            {/* Payment section */}
+            <div className="p-4 bg-dark-700 rounded-xl border border-dark-500 space-y-4">
+              <div className="flex items-center gap-2">
                 <DollarSign size={15} className="text-emerald-400" />
                 <p className="text-sm font-semibold text-white">Payment</p>
                 <span className="text-xs text-gray-500 ml-1">(optional)</span>
               </div>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium pointer-events-none">
-                  Rs.
-                </span>
-                <input
-                  id="appt-payment"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className={`input text-sm pl-10 ${errors.payment_amount ? 'border-red-500' : ''}`}
-                  placeholder="Enter amount paid"
-                  {...register('payment_amount')}
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Total amount charged */}
+                <div>
+                  <label className="label text-xs" htmlFor="appt-total">Total Charged</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium pointer-events-none">
+                      Rs.
+                    </span>
+                    <input
+                      id="appt-total"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className={`input text-sm pl-10 ${errors.total_amount ? 'border-red-500' : ''}`}
+                      placeholder="Treatment cost"
+                      {...register('total_amount')}
+                    />
+                  </div>
+                  {errors.total_amount && (
+                    <p className="text-xs text-red-400 mt-1">{errors.total_amount.message}</p>
+                  )}
+                </div>
+
+                {/* Amount paid */}
+                <div>
+                  <label className="label text-xs" htmlFor="appt-paid">Amount Paid</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium pointer-events-none">
+                      Rs.
+                    </span>
+                    <input
+                      id="appt-paid"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className={`input text-sm pl-10 ${errors.amount_paid ? 'border-red-500' : ''}`}
+                      placeholder="Amount received"
+                      {...register('amount_paid')}
+                    />
+                  </div>
+                  {errors.amount_paid && (
+                    <p className="text-xs text-red-400 mt-1">{errors.amount_paid.message}</p>
+                  )}
+                </div>
               </div>
-              {errors.payment_amount && (
-                <p className="text-xs text-red-400 mt-1">{errors.payment_amount.message}</p>
-              )}
-              {appt.payment_amount != null && (
-                <p className="text-xs text-emerald-400 mt-2">
-                  Current: Rs. {Number(appt.payment_amount).toLocaleString()}
-                </p>
-              )}
+
+              {/* Live pending summary */}
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                <div className="bg-dark-600 rounded-lg p-2.5 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-0.5">
+                    <TrendingUp size={11} className="text-blue-400" />
+                    <p className="text-xs text-gray-400">Charged</p>
+                  </div>
+                  <p className="text-sm font-semibold text-blue-300">
+                    {rs(parseFloat(watchedTotal || '0') || null)}
+                  </p>
+                </div>
+                <div className="bg-dark-600 rounded-lg p-2.5 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-0.5">
+                    <TrendingDown size={11} className="text-emerald-400" />
+                    <p className="text-xs text-gray-400">Paid</p>
+                  </div>
+                  <p className="text-sm font-semibold text-emerald-300">
+                    {rs(parseFloat(watchedPaid || '0') || null)}
+                  </p>
+                </div>
+                <div className="bg-dark-600 rounded-lg p-2.5 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-0.5">
+                    <Minus size={11} className="text-amber-400" />
+                    <p className="text-xs text-gray-400">Pending</p>
+                  </div>
+                  <p className={`text-sm font-semibold ${livePending > 0 ? 'text-amber-300' : 'text-gray-400'}`}>
+                    {livePending > 0 ? `Rs. ${livePending.toLocaleString()}` : '—'}
+                  </p>
+                </div>
+              </div>
             </div>
 
             {formError && (

@@ -17,3 +17,4 @@ class Client(Base):
 
     # Relationships
     appointments = relationship("Appointment", back_populates="client", lazy="select")
+    monthly_summaries = relationship("MonthlyPaymentSummary", back_populates="client", lazy="select")

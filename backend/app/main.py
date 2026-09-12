@@ -12,7 +12,11 @@ import logging
 from app.config import settings
 from app.limiter import limiter
 from app.utils.logging_config import setup_logging
-from app.routers import auth, public, appointments, clients, dashboard, services, testimonials, settings as settings_router
+from app.routers import (
+    auth, public, appointments, clients, dashboard,
+    services, testimonials, settings as settings_router,
+)
+from app.routers.monthly_payments import router as monthly_payments_router
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -66,6 +70,7 @@ app.include_router(clients.router)
 app.include_router(services.router)
 app.include_router(testimonials.router)
 app.include_router(settings_router.router)
+app.include_router(monthly_payments_router)
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -108,12 +113,70 @@ def health_check():
     return {"status": "ok", "service": "Dental Oasis API"}
 
 
+# ---------------------------------------------------------------------------
+# APScheduler — monthly rollover job
+# Fires at 00:00 on the 1st of every month in the clinic's local timezone.
+# ---------------------------------------------------------------------------
+
+def _run_monthly_rollover_job():
+    """Scheduled job: archive previous month's payment data."""
+    from app.database import SessionLocal
+    from app.services.monthly_payment_service import run_monthly_rollover
+
+    db = SessionLocal()
+    try:
+        result = run_monthly_rollover(db)
+        logger.info("Scheduled rollover: %s", result.message)
+    except Exception as exc:
+        logger.error("Scheduled rollover failed: %s", exc, exc_info=True)
+    finally:
+        db.close()
+
+
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Dental Oasis API starting up | ENV=%s | TZ=%s", settings.APP_ENV, settings.CLINIC_TIMEZONE)
+    logger.info(
+        "Dental Oasis API starting up | ENV=%s | TZ=%s",
+        settings.APP_ENV,
+        settings.CLINIC_TIMEZONE,
+    )
+
+    # Verify DB connection
     try:
         from app.database import engine
         with engine.connect() as conn:
             logger.info("Database connection successful.")
     except Exception as e:
         logger.error("Database connection failed: %s", e)
+
+    # Start APScheduler
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from apscheduler.triggers.cron import CronTrigger
+        import pytz
+
+        tz = pytz.timezone(settings.CLINIC_TIMEZONE)
+        scheduler = BackgroundScheduler(timezone=tz)
+        scheduler.add_job(
+            _run_monthly_rollover_job,
+            trigger=CronTrigger(day=1, hour=0, minute=0, second=0, timezone=tz),
+            id="monthly_rollover",
+            name="Monthly Payment Rollover",
+            replace_existing=True,
+        )
+        scheduler.start()
+        app.state.scheduler = scheduler
+        logger.info(
+            "APScheduler started — monthly rollover scheduled for 00:00 on the 1st (%s).",
+            settings.CLINIC_TIMEZONE,
+        )
+    except Exception as e:
+        logger.error("APScheduler failed to start: %s", e, exc_info=True)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    scheduler = getattr(app.state, "scheduler", None)
+    if scheduler and scheduler.running:
+        scheduler.shutdown(wait=False)
+        logger.info("APScheduler shut down.")

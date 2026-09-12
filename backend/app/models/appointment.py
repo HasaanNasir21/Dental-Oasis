@@ -51,7 +51,8 @@ class Appointment(Base):
     appointment_date = Column(Date, nullable=True, index=True)
     appointment_time = Column(Time, nullable=True, index=True)
     notes = Column(Text, nullable=True)
-    payment_amount = Column(Numeric(10, 2), nullable=True)
+    total_amount = Column(Numeric(10, 2), nullable=True)
+    amount_paid = Column(Numeric(10, 2), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

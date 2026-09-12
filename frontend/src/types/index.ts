@@ -87,7 +87,10 @@ export interface Appointment {
   appointment_date: string | null
   appointment_time: string | null
   notes: string | null
-  payment_amount: number | null
+  /** Total amount charged for this appointment (treatment cost) */
+  total_amount: number | null
+  /** Amount the patient has already paid */
+  amount_paid: number | null
   created_at: string
   updated_at: string
 }
@@ -101,6 +104,8 @@ export interface AppointmentListItem {
   status: AppointmentStatus
   appointment_date: string | null
   appointment_time: string | null
+  total_amount: number | null
+  amount_paid: number | null
   created_at: string
 }
 
@@ -123,6 +128,8 @@ export interface AppointmentCreate {
   appointment_date?: string
   appointment_time?: string
   notes?: string
+  total_amount?: number | null
+  amount_paid?: number | null
 }
 
 export interface AppointmentUpdate {
@@ -136,7 +143,8 @@ export interface AppointmentUpdate {
   appointment_date?: string | null
   appointment_time?: string | null
   notes?: string
-  payment_amount?: number | null
+  total_amount?: number | null
+  amount_paid?: number | null
 }
 
 // ---- Client ----
@@ -225,22 +233,91 @@ export interface ClinicInfo {
   social_instagram?: string | null
 }
 
+// ---- Monthly Payment Summaries ----
+
+export interface MonthlyPaymentSummary {
+  id: number
+  year: number
+  month: number
+  client_id: number | null
+  patient_name: string
+  total_charged: number
+  total_paid: number
+  total_pending: number
+  appointment_count: number
+  snapshot_date: string
+  created_at: string
+}
+
+export interface ClinicMonthlyTotals {
+  year: number
+  month: number
+  month_label: string
+  total_charged: number
+  total_paid: number
+  total_pending: number
+  patient_count: number
+  appointment_count: number
+}
+
+export interface CurrentMonthPayments {
+  year: number
+  month: number
+  month_label: string
+  total_charged: number
+  total_paid: number
+  total_pending: number
+  patient_count: number
+  appointment_count: number
+}
+
+export interface MonthlyHistoryResponse {
+  current_month: CurrentMonthPayments
+  archived_months: ClinicMonthlyTotals[]
+}
+
+export interface MonthlyRolloverResult {
+  year: number
+  month: number
+  month_label: string
+  patients_archived: number
+  message: string
+}
+
 // ---- Dashboard ----
 
 export interface DashboardStats {
   total_clients: number
   total_appointments: number
+  /** @deprecated use all_time_paid instead */
   total_payments: number
+  all_time_charged: number
+  all_time_paid: number
+  all_time_pending: number
+  // Current month live snapshot
+  current_month_year: number
+  current_month_month: number
+  current_month_label: string
+  current_month_charged: number
+  current_month_paid: number
+  current_month_pending: number
+  current_month_patients: number
+  current_month_appointments: number
+  // Appointment status counts
   pending_appointments: number
   contacted_appointments: number
   confirmed_appointments: number
   completed_appointments: number
   cancelled_appointments: number
   no_show_appointments: number
+  // Today / upcoming
   today_appointments: Appointment[]
   upcoming_appointments: Appointment[]
+  // Charts
   status_chart: { status: string; count: number }[]
   trend_chart: { date: string; count: number }[]
+  // Archived monthly clinic-wide totals
+  archived_months: ClinicMonthlyTotals[]
 }
 
 // ---- Auth ----

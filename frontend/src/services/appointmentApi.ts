@@ -5,6 +5,7 @@ import type {
   Appointment,
   AppointmentListItem,
   PublicAppointmentCreate,
+  AppointmentCreate,
   AppointmentUpdate,
 } from '../types'
 
@@ -31,6 +32,11 @@ export const appointmentApi = {
 
   getById: async (id: number): Promise<ApiResponse<Appointment>> => {
     const res = await apiClient.get(`/api/admin/appointments/${id}`)
+    return res.data
+  },
+
+  create: async (data: AppointmentCreate): Promise<ApiResponse<Appointment>> => {
+    const res = await apiClient.post('/api/admin/appointments', data)
     return res.data
   },
 
