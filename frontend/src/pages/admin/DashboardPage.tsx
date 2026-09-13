@@ -67,7 +67,8 @@ export default function DashboardPage() {
   if (error) return <div className="p-6"><ErrorState message={error} onRetry={load} /></div>
   if (!stats) return null
 
-  const monthlyTotal = stats.current_month_charged ?? 0
+  const monthlyPaid = stats.current_month_paid ?? 0
+  const monthlyCharged = stats.current_month_charged ?? 0
   const monthlyLabel = stats.current_month_label ?? ''
 
   const statCards = [
@@ -135,10 +136,10 @@ export default function DashboardPage() {
               <span className="text-xs text-gray-500">({monthlyLabel})</span>
             </div>
             <p className="text-3xl font-bold text-white">
-              Rs. {monthlyTotal.toLocaleString()}
+              Rs. {monthlyPaid.toLocaleString()}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              Total billed from confirmed &amp; completed appointments · resets on the 1st
+              Total paid this month · resets on the 1st
             </p>
           </div>
           <div className="p-3 rounded-2xl bg-emerald-600/20 flex-shrink-0 ml-4">
@@ -146,18 +147,22 @@ export default function DashboardPage() {
           </div>
         </div>
         {/* Mini breakdown */}
-        <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-emerald-500/10">
+        <div className="grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-emerald-500/10">
           <div className="text-center">
+            <p className="text-xs text-gray-500 mb-0.5">Total Billed</p>
+            <p className="text-base font-bold text-blue-300">Rs. {monthlyCharged.toLocaleString()}</p>
+          </div>
+          <div className="text-center border-x border-emerald-500/10">
+            <p className="text-xs text-gray-500 mb-0.5">Amount Paid</p>
+            <p className="text-base font-bold text-emerald-300">Rs. {monthlyPaid.toLocaleString()}</p>
+          </div>
+          <div className="text-center border-r border-emerald-500/10">
             <p className="text-xs text-gray-500 mb-0.5">Appointments</p>
             <p className="text-base font-bold text-white">{stats.current_month_appointments}</p>
           </div>
-          <div className="text-center border-x border-emerald-500/10">
+          <div className="text-center">
             <p className="text-xs text-gray-500 mb-0.5">Patients Seen</p>
             <p className="text-base font-bold text-white">{stats.current_month_patients}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-gray-500 mb-0.5">Month</p>
-            <p className="text-base font-bold text-emerald-300">{monthlyLabel.split(' ')[0]}</p>
           </div>
         </div>
       </div>
@@ -320,7 +325,7 @@ export default function DashboardPage() {
             <table className="w-full text-sm" aria-label="Monthly revenue history">
               <thead>
                 <tr className="border-b border-dark-500">
-                  {['Month', 'Total Billed', 'Appointments', 'Patients'].map((h) => (
+                  {['Month', 'Amount Paid', 'Total Billed', 'Appointments', 'Patients'].map((h) => (
                     <th
                       key={h}
                       className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap"
@@ -340,6 +345,9 @@ export default function DashboardPage() {
                       {m.month_label}
                     </td>
                     <td className="px-3 py-2.5 font-semibold text-emerald-300 whitespace-nowrap">
+                      Rs. {Number(m.total_paid).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2.5 text-blue-300 whitespace-nowrap">
                       Rs. {Number(m.total_charged).toLocaleString()}
                     </td>
                     <td className="px-3 py-2.5 text-gray-300 whitespace-nowrap">
