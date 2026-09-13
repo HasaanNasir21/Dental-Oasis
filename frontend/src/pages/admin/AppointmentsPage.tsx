@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { Search, X, Eye, Trash2, MessageSquare, Share2, Copy, Check } from 'lucide-react'
 import { appointmentApi } from '../../services/appointmentApi'
-import type { AppointmentListItem, PaginationMeta } from '../../types'
+import { settingsApi } from '../../services/settingsApi'
+import type { AppointmentListItem, PaginationMeta, ClinicInfo } from '../../types'
 import { APPOINTMENT_REASONS, APPOINTMENT_STATUSES } from '../../types'
 import { PageLoader } from '../../components/ui/LoadingSpinner'
 import ErrorState from '../../components/ui/ErrorState'
@@ -18,29 +19,41 @@ import { getStatusLabel } from '../../utils/statusHelpers'
 // ---- Message Modal ----
 function AppointmentMessageModal({
   appt,
+  clinic,
   onClose,
 }: {
   appt: AppointmentListItem
+  clinic: ClinicInfo | null
   onClose: () => void
 }) {
   const [copied, setCopied] = useState(false)
 
+  const clinicName = clinic?.name ?? 'Dental Oasis'
+  const clinicAddress = clinic?.address ?? ''
+  const clinicPhone = clinic?.phone ?? ''
+  const clinicWhatsApp = clinic?.whatsapp ?? ''
+
+  // Build contact line(s): phone and/or whatsapp if available
+  const contactLines: string[] = []
+  if (clinicAddress) contactLines.push(clinicAddress)
+  if (clinicPhone) contactLines.push(clinicPhone)
+  if (clinicWhatsApp && clinicWhatsApp !== clinicPhone) contactLines.push(clinicWhatsApp)
+
   const message = [
-    `Appointment Confirmation – Dental Oasis`,
+    `Appointment Confirmation – ${clinicName}`,
     ``,
     `Dear ${appt.patient_name},`,
     ``,
-    `Your appointment at Dental Oasis has been successfully confirmed.`,
+    `Your appointment at ${clinicName} has been successfully confirmed.`,
     ``,
     `Treatment: ${appt.reason}`,
     `Date: ${appt.appointment_date ? formatDate(appt.appointment_date) : '—'}`,
     `Time: ${appt.appointment_time ? formatTime(appt.appointment_time) : '—'}`,
     ``,
-    `Please arrive a few minutes before your scheduled appointment time.`,
-    ``,
     `We look forward to seeing you.`,
     ``,
-    `Dental Oasis`,
+    clinicName,
+    ...contactLines,
   ].join('\n')
 
   const handleCopy = async () => {
@@ -125,6 +138,7 @@ export default function AppointmentsPage() {
   const [meta, setMeta] = useState<PaginationMeta | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [clinicInfo, setClinicInfo] = useState<ClinicInfo | null>(null)
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -140,6 +154,13 @@ export default function AppointmentsPage() {
 
   const searchTimer = useRef<ReturnType<typeof setTimeout>>()
   const { showToast } = useToast()
+
+  // Fetch clinic info once for the message template
+  useEffect(() => {
+    settingsApi.getPublic()
+      .then((r) => { if (r.success && r.data) setClinicInfo(r.data) })
+      .catch(() => { /* non-critical — message will use fallback values */ })
+  }, [])
 
   const load = useCallback(() => {
     setLoading(true)
@@ -361,6 +382,7 @@ export default function AppointmentsPage() {
       {messageAppt && (
         <AppointmentMessageModal
           appt={messageAppt}
+          clinic={clinicInfo}
           onClose={() => setMessageAppt(null)}
         />
       )}

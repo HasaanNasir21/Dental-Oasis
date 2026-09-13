@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Users, Calendar, Clock, CheckCircle, AlertCircle,
-  TrendingUp, ChevronRight,
+  TrendingUp, ChevronRight, Banknote, History,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts'
 import { dashboardApi } from '../../services/dashboardApi'
-import type { DashboardStats, Appointment } from '../../types'
+import type { DashboardStats, Appointment, ClinicMonthlyTotals } from '../../types'
 import { PageLoader } from '../../components/ui/LoadingSpinner'
 import ErrorState from '../../components/ui/ErrorState'
 import StatusBadge from '../../components/ui/StatusBadge'
@@ -67,6 +67,9 @@ export default function DashboardPage() {
   if (error) return <div className="p-6"><ErrorState message={error} onRetry={load} /></div>
   if (!stats) return null
 
+  const monthlyTotal = stats.current_month_charged ?? 0
+  const monthlyLabel = stats.current_month_label ?? ''
+
   const statCards = [
     {
       icon: Users,
@@ -120,6 +123,43 @@ export default function DashboardPage() {
         {statCards.map((s) => (
           <StatCard key={s.label} {...s} />
         ))}
+      </div>
+
+      {/* This Month's Revenue */}
+      <div className="card border border-emerald-500/20 bg-gradient-to-br from-emerald-900/20 to-dark-800">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Banknote size={16} className="text-emerald-400" aria-hidden="true" />
+              <p className="text-sm font-semibold text-emerald-300">This Month's Revenue</p>
+              <span className="text-xs text-gray-500">({monthlyLabel})</span>
+            </div>
+            <p className="text-3xl font-bold text-white">
+              Rs. {monthlyTotal.toLocaleString()}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Total billed from confirmed &amp; completed appointments · resets on the 1st
+            </p>
+          </div>
+          <div className="p-3 rounded-2xl bg-emerald-600/20 flex-shrink-0 ml-4">
+            <Banknote size={28} className="text-emerald-400" aria-hidden="true" />
+          </div>
+        </div>
+        {/* Mini breakdown */}
+        <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-emerald-500/10">
+          <div className="text-center">
+            <p className="text-xs text-gray-500 mb-0.5">Appointments</p>
+            <p className="text-base font-bold text-white">{stats.current_month_appointments}</p>
+          </div>
+          <div className="text-center border-x border-emerald-500/10">
+            <p className="text-xs text-gray-500 mb-0.5">Patients Seen</p>
+            <p className="text-base font-bold text-white">{stats.current_month_patients}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-500 mb-0.5">Month</p>
+            <p className="text-base font-bold text-emerald-300">{monthlyLabel.split(' ')[0]}</p>
+          </div>
+        </div>
       </div>
 
       {/* ── Charts row ─────────────────────────────────────────────── */}
@@ -267,6 +307,54 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Monthly Revenue History */}
+      {stats.archived_months && stats.archived_months.length > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <History size={16} className="text-primary-400" aria-hidden="true" />
+            <h2 className="text-base font-semibold text-white">Monthly Revenue History</h2>
+            <span className="text-xs text-gray-500 ml-1">— saved snapshots (last 12 months)</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" aria-label="Monthly revenue history">
+              <thead>
+                <tr className="border-b border-dark-500">
+                  {['Month', 'Total Billed', 'Appointments', 'Patients'].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(stats.archived_months as ClinicMonthlyTotals[]).map((m) => (
+                  <tr
+                    key={`${m.year}-${m.month}`}
+                    className="border-b border-dark-600 hover:bg-dark-600/40 transition-colors"
+                  >
+                    <td className="px-3 py-2.5 font-medium text-white whitespace-nowrap">
+                      {m.month_label}
+                    </td>
+                    <td className="px-3 py-2.5 font-semibold text-emerald-300 whitespace-nowrap">
+                      Rs. {Number(m.total_charged).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2.5 text-gray-300 whitespace-nowrap">
+                      {m.appointment_count}
+                    </td>
+                    <td className="px-3 py-2.5 text-gray-300 whitespace-nowrap">
+                      {m.patient_count}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
