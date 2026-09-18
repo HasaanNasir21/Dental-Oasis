@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Users, Calendar, Clock, CheckCircle, AlertCircle,
-  TrendingUp, ChevronRight, Banknote, History, CreditCard,
+  TrendingUp, ChevronRight, Banknote, History, CreditCard, MessageCircle,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -16,6 +16,25 @@ import StatusBadge from '../../components/ui/StatusBadge'
 import { parseApiError, formatDate, formatTime } from '../../utils/errorHandler'
 
 const PIE_COLORS = ['#f59e0b', '#3b82f6', '#22c55e', '#14b8a6', '#ef4444', '#6b7280']
+
+/** Open WhatsApp with a pre-filled appointment reminder message */
+function openWhatsApp(appt: Appointment) {
+  // Normalize: strip all non-digit characters, then add country code if not present
+  const digits = appt.contact_number.replace(/\D/g, '')
+  const number = digits.startsWith('92') ? digits : digits.startsWith('0') ? `92${digits.slice(1)}` : `92${digits}`
+  const time = appt.appointment_time ? formatTime(appt.appointment_time) : ''
+  const msg = [
+    `Assalam-o-Alaikum ${appt.patient_name},`,
+    '',
+    `This is a reminder that you have an appointment at Dental Oasis today${time ? ` at ${time}` : ''}.`,
+    `Treatment: ${appt.reason}`,
+    '',
+    'We look forward to seeing you! If you need to reschedule, please contact us.',
+    '',
+    '— Dental Oasis',
+  ].join('\n')
+  window.open(`https://wa.me/${number}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer')
+}
 
 function StatCard({
   icon: Icon, label, value, color, to, sub,
@@ -254,7 +273,18 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-400">{appt.reason}</p>
                   </div>
                 </div>
-                <StatusBadge status={appt.status} />
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <StatusBadge status={appt.status} />
+                  <button
+                    type="button"
+                    onClick={() => openWhatsApp(appt)}
+                    title={`Send WhatsApp message to ${appt.patient_name}`}
+                    aria-label={`Send WhatsApp message to ${appt.patient_name}`}
+                    className="p-1.5 rounded-lg bg-green-600/15 hover:bg-green-600/30 text-green-400 hover:text-green-300 transition-colors"
+                  >
+                    <MessageCircle size={15} />
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
