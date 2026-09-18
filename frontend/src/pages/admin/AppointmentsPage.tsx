@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Search, X, Eye, Trash2, MessageSquare, Share2, Copy, Check } from 'lucide-react'
+import { Search, X, Eye, Trash2, MessageSquare, Copy, Check } from 'lucide-react'
 import { appointmentApi } from '../../services/appointmentApi'
 import { settingsApi } from '../../services/settingsApi'
 import type { AppointmentListItem, PaginationMeta, ClinicInfo } from '../../types'
@@ -74,25 +74,20 @@ function AppointmentMessageModal({
     }
   }
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ text: message })
-      } catch {
-        // user cancelled share — do nothing
-      }
-    } else {
-      // Fallback: open WhatsApp web with the message pre-filled
-      const encoded = encodeURIComponent(message)
-      window.open(`https://wa.me/?text=${encoded}`, '_blank')
-    }
+  const handleShare = () => {
+    // Open WhatsApp directly with the patient's number and message pre-filled.
+    // Strips all non-digit characters except leading + so numbers like 03234629591
+    // or +923234629591 both work correctly.
+    const digits = appt.contact_number.replace(/[^\d+]/g, '')
+    const encoded = encodeURIComponent(message)
+    window.open(`https://wa.me/${digits}?text=${encoded}`, '_blank')
   }
 
   return (
     <Modal isOpen onClose={onClose} title="Confirmation Message" size="md">
       <div className="space-y-4">
         <p className="text-xs text-gray-400">
-          Message is ready to send. Copy it or use the Share button to send via WhatsApp, SMS, or any app.
+          Message is ready to send. Click <strong className="text-white">WhatsApp</strong> to open a chat with {appt.patient_name} directly, or copy the message to send manually.
         </p>
 
         {/* Message preview */}
@@ -124,8 +119,8 @@ function AppointmentMessageModal({
             onClick={handleShare}
             className="btn-primary text-sm flex items-center gap-2"
           >
-            <Share2 size={14} />
-            Share
+            <MessageSquare size={14} />
+            Send on WhatsApp
           </button>
         </div>
       </div>
