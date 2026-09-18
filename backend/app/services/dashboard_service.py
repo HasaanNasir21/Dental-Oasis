@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Date, extract
 from datetime import timedelta
 from decimal import Decimal
-from typing import Dict, Any
+from typing import Dict, Any, List
 from app.models.appointment import Appointment, AppointmentStatus
 from app.models.client import Client
 from app.timezone_utils import clinic_today
@@ -22,6 +22,46 @@ def _serialize_appointment(a: Appointment) -> dict:
         if row.get(field) is not None:
             row[field] = float(row[field])
     return row
+
+
+def get_current_month_payment_log(db: Session) -> List[Dict[str, Any]]:
+    """
+    Return every appointment in the current calendar month that has an
+    amount_paid recorded, ordered by appointment_date then patient name.
+    Each entry represents one payment event shown in the dashboard log.
+    """
+    today = clinic_today()
+    year, month = today.year, today.month
+
+    rows = (
+        db.query(Appointment)
+        .filter(
+            extract("year", Appointment.appointment_date) == year,
+            extract("month", Appointment.appointment_date) == month,
+            Appointment.amount_paid.isnot(None),
+            Appointment.amount_paid > 0,
+            Appointment.status.in_(BILLABLE_STATUSES),
+        )
+        .order_by(Appointment.appointment_date, Appointment.patient_name)
+        .all()
+    )
+
+    result = []
+    for a in rows:
+        total = float(a.total_amount) if a.total_amount is not None else None
+        paid = float(a.amount_paid) if a.amount_paid is not None else 0.0
+        pending = max((total or 0) - paid, 0) if total is not None else None
+        result.append({
+            "appointment_id": a.id,
+            "patient_name": a.patient_name,
+            "appointment_date": a.appointment_date.isoformat() if a.appointment_date else None,
+            "reason": a.reason,
+            "total_amount": total,
+            "amount_paid": paid,
+            "pending_amount": pending,
+            "status": a.status.value if hasattr(a.status, "value") else a.status,
+        })
+    return result
 
 
 def get_dashboard_stats(db: Session) -> Dict[str, Any]:
@@ -110,6 +150,9 @@ def get_dashboard_stats(db: Session) -> Dict[str, Any]:
         for m in archived_months
     ]
 
+    # Current month payment log — one row per appointment that has amount_paid
+    current_month_payment_log = get_current_month_payment_log(db)
+
     return {
         "total_clients": total_clients,
         "total_appointments": total_appointments,
@@ -142,4 +185,6 @@ def get_dashboard_stats(db: Session) -> Dict[str, Any]:
         "trend_chart": trend_chart,
         # Archived monthly history
         "archived_months": archived_months_data,
+        # Current month payment log (per appointment, for the dashboard table)
+        "current_month_payment_log": current_month_payment_log,
     }

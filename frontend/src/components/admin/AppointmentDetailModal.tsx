@@ -55,11 +55,13 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
     resolver: zodResolver(schema),
   })
 
-  // Live pending calculation from form values
+  // Live pending calculation from form values.
+  // Falls back to the saved total_amount if the field is left blank so the
+  // "Pending" tile in the modal stays accurate during payment-only edits.
   const watchedTotal = watch('total_amount')
   const watchedPaid = watch('amount_paid')
   const livePending = (() => {
-    const t = parseFloat(watchedTotal || '0') || 0
+    const t = parseFloat(watchedTotal || '0') || (appt?.total_amount ?? 0)
     const p = parseFloat(watchedPaid || '0') || 0
     const diff = t - p
     return diff > 0 ? diff : 0
@@ -90,13 +92,20 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
     setSaving(true)
     setFormError(null)
     try {
+      // Preserve the existing total_amount if the field is left blank — don't wipe it.
+      // This lets the doctor record a payment on a follow-up visit without clearing the
+      // treatment cost that was entered on the first appointment.
+      const resolvedTotal = values.total_amount
+        ? parseFloat(values.total_amount)
+        : appt.total_amount ?? null
+
       await appointmentApi.update(appt.id, {
         status: values.status as Appointment['status'],
         appointment_date: values.appointment_date || null,
         appointment_time: values.appointment_time || null,
         reason: values.reason,
         notes: values.notes || undefined,
-        total_amount: values.total_amount ? parseFloat(values.total_amount) : null,
+        total_amount: resolvedTotal,
         amount_paid: values.amount_paid ? parseFloat(values.amount_paid) : null,
       })
       showToast('Appointment updated successfully.')
@@ -278,7 +287,7 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
                     <p className="text-xs text-gray-400">Charged</p>
                   </div>
                   <p className="text-sm font-semibold text-blue-300">
-                    {rs(parseFloat(watchedTotal || '0') || null)}
+                    {rs(parseFloat(watchedTotal || '0') || appt.total_amount || null)}
                   </p>
                 </div>
                 <div className="bg-dark-600 rounded-lg p-2.5 text-center">

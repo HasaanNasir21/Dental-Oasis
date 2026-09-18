@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Users, Calendar, Clock, CheckCircle, AlertCircle,
-  TrendingUp, ChevronRight, Banknote, History,
+  TrendingUp, ChevronRight, Banknote, History, CreditCard,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts'
 import { dashboardApi } from '../../services/dashboardApi'
-import type { DashboardStats, Appointment, ClinicMonthlyTotals } from '../../types'
+import type { DashboardStats, Appointment, ClinicMonthlyTotals, PaymentLogEntry } from '../../types'
 import { PageLoader } from '../../components/ui/LoadingSpinner'
 import ErrorState from '../../components/ui/ErrorState'
 import StatusBadge from '../../components/ui/StatusBadge'
@@ -312,6 +312,97 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Current Month Payment Log */}
+      {stats.current_month_payment_log && stats.current_month_payment_log.length > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-1">
+            <CreditCard size={16} className="text-emerald-400" aria-hidden="true" />
+            <h2 className="text-base font-semibold text-white">Payment Log</h2>
+            <span className="text-xs text-gray-500 ml-1">— {monthlyLabel} · resets on the 1st</span>
+          </div>
+          <p className="text-xs text-gray-500 mb-4">Every payment recorded this month, sorted by date.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" aria-label="Current month payment log">
+              <thead>
+                <tr className="border-b border-dark-500">
+                  {['Date', 'Patient', 'Treatment', 'Total Billed', 'Paid', 'Pending'].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(stats.current_month_payment_log as PaymentLogEntry[]).map((entry, idx) => {
+                  const pending = entry.pending_amount
+                  return (
+                    <tr
+                      key={`${entry.appointment_id}-${idx}`}
+                      className="border-b border-dark-600 hover:bg-dark-600/40 transition-colors"
+                    >
+                      <td className="px-3 py-2.5 text-gray-300 whitespace-nowrap">
+                        {entry.appointment_date ? formatDate(entry.appointment_date) : '—'}
+                      </td>
+                      <td className="px-3 py-2.5 font-medium text-white whitespace-nowrap">
+                        {entry.patient_name}
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-400 whitespace-nowrap">
+                        {entry.reason}
+                      </td>
+                      <td className="px-3 py-2.5 text-blue-300 whitespace-nowrap">
+                        {entry.total_amount != null
+                          ? `Rs. ${Number(entry.total_amount).toLocaleString()}`
+                          : <span className="text-gray-600">—</span>
+                        }
+                      </td>
+                      <td className="px-3 py-2.5 font-semibold text-emerald-300 whitespace-nowrap">
+                        Rs. {Number(entry.amount_paid).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2.5 whitespace-nowrap">
+                        {pending == null ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 font-medium">Installment</span>
+                        ) : pending === 0 ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium">Paid</span>
+                        ) : (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-medium">
+                            Due Rs. {Number(pending).toLocaleString()}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+              {/* Totals footer */}
+              {(() => {
+                const log = stats.current_month_payment_log as PaymentLogEntry[]
+                const totalPaid = log.reduce((s, e) => s + e.amount_paid, 0)
+                const totalBilled = log.reduce((s, e) => s + (e.total_amount ?? 0), 0)
+                return (
+                  <tfoot>
+                    <tr className="border-t border-dark-400">
+                      <td colSpan={3} className="px-3 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase">
+                        Month Total
+                      </td>
+                      <td className="px-3 pt-3 pb-1 text-sm font-bold text-blue-300 whitespace-nowrap">
+                        Rs. {totalBilled.toLocaleString()}
+                      </td>
+                      <td className="px-3 pt-3 pb-1 text-sm font-bold text-emerald-300 whitespace-nowrap">
+                        Rs. {totalPaid.toLocaleString()}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                )
+              })()}
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Monthly Revenue History */}
       {stats.archived_months && stats.archived_months.length > 0 && (

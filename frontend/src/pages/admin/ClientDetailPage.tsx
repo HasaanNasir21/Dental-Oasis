@@ -41,7 +41,12 @@ function rs(val: number | null | undefined) {
 }
 
 function PaymentBadge({ total, paid }: { total: number | null; paid: number | null }) {
+  // Neither field set — nothing to show
   if (total == null && paid == null) return <span className="text-gray-600 text-xs">—</span>
+  // Installment: paid recorded but no total set on this appointment
+  if (total == null && paid != null && paid > 0) {
+    return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 font-medium">Installment</span>
+  }
   const t = total ?? 0
   const p = paid ?? 0
   const pending = Math.max(t - p, 0)
@@ -392,7 +397,10 @@ export default function ClientDetailPage() {
                 </thead>
                 <tbody>
                   {appointments.map((appt) => {
-                    const pending = Math.max((appt.total_amount ?? 0) - (appt.amount_paid ?? 0), 0)
+                    // pending is only meaningful when total_amount is set on this appointment
+                    const pending = appt.total_amount != null
+                      ? Math.max(appt.total_amount - (appt.amount_paid ?? 0), 0)
+                      : null
                     return (
                       <tr
                         key={appt.id}
@@ -411,8 +419,10 @@ export default function ClientDetailPage() {
                         <td className="py-3 pr-4"><StatusBadge status={appt.status} /></td>
                         <td className="py-3 pr-4 text-right text-blue-300">{rs(appt.total_amount)}</td>
                         <td className="py-3 pr-4 text-right text-emerald-300">{rs(appt.amount_paid)}</td>
-                        <td className={`py-3 pr-4 text-right font-medium ${pending > 0 ? 'text-amber-300' : 'text-gray-500'}`}>
-                          {pending > 0 ? rs(pending) : '—'}
+                        <td className={`py-3 pr-4 text-right font-medium ${
+                          pending == null ? 'text-gray-500' : pending > 0 ? 'text-amber-300' : 'text-emerald-400'
+                        }`}>
+                          {pending == null ? '—' : pending > 0 ? rs(pending) : 'Rs. 0'}
                         </td>
                         <td className="py-3 text-center">
                           <PaymentBadge total={appt.total_amount} paid={appt.amount_paid} />

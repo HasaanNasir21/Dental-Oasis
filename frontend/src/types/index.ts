@@ -286,6 +286,17 @@ export interface MonthlyRolloverResult {
 
 // ---- Dashboard ----
 
+export interface PaymentLogEntry {
+  appointment_id: number
+  patient_name: string
+  appointment_date: string | null
+  reason: string
+  total_amount: number | null
+  amount_paid: number
+  pending_amount: number | null
+  status: AppointmentStatus
+}
+
 export interface DashboardStats {
   total_clients: number
   total_appointments: number
@@ -318,6 +329,8 @@ export interface DashboardStats {
   trend_chart: { date: string; count: number }[]
   // Archived monthly clinic-wide totals
   archived_months: ClinicMonthlyTotals[]
+  // Current month payment log — one row per appointment with a payment
+  current_month_payment_log: PaymentLogEntry[]
 }
 
 // ---- Auth ----
