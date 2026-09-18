@@ -25,7 +25,13 @@ export function parseApiError(error: unknown): string {
 
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
-  const d = new Date(dateStr)
+  // Parse only the date portion (YYYY-MM-DD) to avoid UTC→local timezone shift.
+  // new Date("2026-09-16") is treated as UTC midnight which rolls back one day in
+  // timezones ahead of UTC (e.g. PKT UTC+5 shows Sep 15 instead of Sep 16).
+  const datePart = dateStr.substring(0, 10) // "2026-09-16"
+  const [year, month, day] = datePart.split('-').map(Number)
+  // Construct using local-time constructor (year, monthIndex, day)
+  const d = new Date(year, month - 1, day)
   return d.toLocaleDateString('en-PK', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
