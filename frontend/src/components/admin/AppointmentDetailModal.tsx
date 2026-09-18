@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Phone, MessageCircle, Save, AlertCircle, DollarSign, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Phone, MessageCircle, Save, AlertCircle, DollarSign, TrendingUp, TrendingDown, Minus, Users } from 'lucide-react'
 import Modal from '../ui/Modal'
 import LoadingSpinner, { PageLoader } from '../ui/LoadingSpinner'
 import { appointmentApi } from '../../services/appointmentApi'
@@ -36,6 +36,8 @@ interface Props {
   appointmentId: number
   onClose: () => void
   onUpdated: () => void
+  /** All appointments for this patient — used to show cumulative payment summary */
+  allAppointments?: Appointment[]
 }
 
 function rs(val: number | null | undefined) {
@@ -43,7 +45,7 @@ function rs(val: number | null | undefined) {
   return `Rs. ${Number(val).toLocaleString()}`
 }
 
-export default function AppointmentDetailModal({ appointmentId, onClose, onUpdated }: Props) {
+export default function AppointmentDetailModal({ appointmentId, onClose, onUpdated, allAppointments }: Props) {
   const [appt, setAppt] = useState<Appointment | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -66,6 +68,25 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
     const diff = t - p
     return diff > 0 ? diff : 0
   })()
+
+  // Cumulative patient-level totals across ALL their appointments (billable only).
+  // Used to show context when this appointment is a follow-up payment with no total_amount.
+  const patientTotals = (() => {
+    if (!allAppointments || allAppointments.length === 0) return null
+    const billable = allAppointments.filter(
+      (a) => a.status === 'CONFIRMED' || a.status === 'COMPLETED'
+    )
+    if (billable.length === 0) return null
+    const totalCharged = billable.reduce((s, a) => s + (a.total_amount ?? 0), 0)
+    const totalPaid = billable.reduce((s, a) => s + (a.amount_paid ?? 0), 0)
+    const totalPending = Math.max(totalCharged - totalPaid, 0)
+    // Only show when there's a meaningful total across all appointments
+    return totalCharged > 0 || totalPaid > 0 ? { totalCharged, totalPaid, totalPending } : null
+  })()
+
+  // Show the cumulative summary when this specific appointment has no total_amount
+  // (i.e. it's a follow-up installment payment) — so the doctor always sees the full picture.
+  const showPatientSummary = patientTotals != null && appt?.total_amount == null
 
   useEffect(() => {
     appointmentApi.getById(appointmentId)
@@ -225,12 +246,42 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
               />
             </div>
 
+            {/* Patient-level cumulative summary — shown when this appointment is a follow-up
+                installment (no total_amount on this visit) so the doctor sees the full balance */}
+            {showPatientSummary && patientTotals && (
+              <div className="p-3 bg-dark-700/60 rounded-xl border border-primary-500/20 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Users size={12} className="text-primary-400" />
+                  <p className="text-xs font-semibold text-primary-300">Patient Overall Balance</p>
+                  <span className="text-xs text-gray-500 ml-1">— across all appointments</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-dark-600 rounded-lg p-2 text-center">
+                    <p className="text-xs text-gray-400 mb-0.5">Total Billed</p>
+                    <p className="text-sm font-bold text-blue-300">{rs(patientTotals.totalCharged)}</p>
+                  </div>
+                  <div className="bg-dark-600 rounded-lg p-2 text-center">
+                    <p className="text-xs text-gray-400 mb-0.5">Total Paid</p>
+                    <p className="text-sm font-bold text-emerald-300">{rs(patientTotals.totalPaid)}</p>
+                  </div>
+                  <div className="bg-dark-600 rounded-lg p-2 text-center">
+                    <p className="text-xs text-gray-400 mb-0.5">Still Pending</p>
+                    <p className={`text-sm font-bold ${patientTotals.totalPending > 0 ? 'text-amber-300' : 'text-emerald-400'}`}>
+                      {patientTotals.totalPending > 0 ? rs(patientTotals.totalPending) : 'Rs. 0'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Payment section */}
             <div className="p-4 bg-dark-700 rounded-xl border border-dark-500 space-y-4">
               <div className="flex items-center gap-2">
                 <DollarSign size={15} className="text-emerald-400" />
                 <p className="text-sm font-semibold text-white">Payment</p>
-                <span className="text-xs text-gray-500 ml-1">(optional)</span>
+                <span className="text-xs text-gray-500 ml-1">
+                  {appt.total_amount == null ? '— recording installment' : '(optional)'}
+                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -247,7 +298,7 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
                       min="0"
                       step="0.01"
                       className={`input text-sm pl-10 ${errors.total_amount ? 'border-red-500' : ''}`}
-                      placeholder="Treatment cost"
+                      placeholder={appt.total_amount == null ? 'Not set on this visit' : 'Treatment cost'}
                       {...register('total_amount')}
                     />
                   </div>
@@ -279,7 +330,7 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
                 </div>
               </div>
 
-              {/* Live pending summary */}
+              {/* Live pending summary — this appointment only */}
               <div className="grid grid-cols-3 gap-2 pt-1">
                 <div className="bg-dark-600 rounded-lg p-2.5 text-center">
                   <div className="flex items-center justify-center gap-1 mb-0.5">

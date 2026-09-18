@@ -531,6 +531,7 @@ export default function ClientDetailPage() {
           appointmentId={selectedApptId}
           onClose={() => setSelectedApptId(null)}
           onUpdated={load}
+          allAppointments={appointments}
         />
       )}
     </div>
