@@ -363,10 +363,8 @@ export default function DashboardPage() {
                         Rs. {Number(entry.amount_paid).toLocaleString()}
                       </td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
-                        {pending == null ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 font-medium">Installment</span>
-                        ) : pending === 0 ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium">Paid</span>
+                        {pending == null || pending === 0 ? (
+                          <span className="text-sm font-semibold text-emerald-400">Rs. 0</span>
                         ) : (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-medium">
                             Due Rs. {Number(pending).toLocaleString()}

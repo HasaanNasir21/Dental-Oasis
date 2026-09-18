@@ -29,6 +29,11 @@ def get_current_month_payment_log(db: Session) -> List[Dict[str, Any]]:
     Return every appointment in the current calendar month that has an
     amount_paid recorded, ordered by appointment_date then patient name.
     Each entry represents one payment event shown in the dashboard log.
+
+    For installment rows (no total_amount on this appointment), the
+    pending_amount is computed from the patient's cumulative balance across
+    ALL their billable appointments so the dashboard always shows 0 or the
+    real remaining balance — never "Installment".
     """
     today = clinic_today()
     year, month = today.year, today.month
@@ -46,20 +51,93 @@ def get_current_month_payment_log(db: Session) -> List[Dict[str, Any]]:
         .all()
     )
 
+    # Pre-build a map of client_id → cumulative (total_charged, total_paid) across ALL
+    # their billable appointments (not just this month) so installment rows can show
+    # the true running balance.
+    # Key: client_id (int) for linked patients, or patient_name (str) as fallback.
+    client_ids = {a.client_id for a in rows if a.client_id is not None}
+    patient_names_no_id = {a.patient_name for a in rows if a.client_id is None}
+
+    cumulative: Dict[Any, Dict[str, float]] = {}
+
+    if client_ids:
+        agg_rows = (
+            db.query(
+                Appointment.client_id,
+                func.coalesce(func.sum(Appointment.total_amount), 0).label("total_charged"),
+                func.coalesce(func.sum(Appointment.amount_paid), 0).label("total_paid"),
+            )
+            .filter(
+                Appointment.client_id.in_(client_ids),
+                Appointment.status.in_(BILLABLE_STATUSES),
+            )
+            .group_by(Appointment.client_id)
+            .all()
+        )
+        for r in agg_rows:
+            tc = float(r.total_charged)
+            tp = float(r.total_paid)
+            cumulative[r.client_id] = {
+                "total_charged": tc,
+                "total_paid": tp,
+                "pending": max(tc - tp, 0.0),
+            }
+
+    if patient_names_no_id:
+        agg_rows2 = (
+            db.query(
+                Appointment.patient_name,
+                func.coalesce(func.sum(Appointment.total_amount), 0).label("total_charged"),
+                func.coalesce(func.sum(Appointment.amount_paid), 0).label("total_paid"),
+            )
+            .filter(
+                Appointment.patient_name.in_(patient_names_no_id),
+                Appointment.client_id.is_(None),
+                Appointment.status.in_(BILLABLE_STATUSES),
+            )
+            .group_by(Appointment.patient_name)
+            .all()
+        )
+        for r in agg_rows2:
+            tc = float(r.total_charged)
+            tp = float(r.total_paid)
+            cumulative[r.patient_name] = {
+                "total_charged": tc,
+                "total_paid": tp,
+                "pending": max(tc - tp, 0.0),
+            }
+
     result = []
     for a in rows:
-        total = float(a.total_amount) if a.total_amount is not None else None
-        paid = float(a.amount_paid) if a.amount_paid is not None else 0.0
-        pending = max((total or 0) - paid, 0) if total is not None else None
+        own_total  = float(a.total_amount) if a.total_amount is not None else None
+        own_paid   = float(a.amount_paid)  if a.amount_paid  is not None else 0.0
+        is_installment = own_total is None
+
+        # Look up cumulative figures for this patient
+        key = a.client_id if a.client_id is not None else a.patient_name
+        cum = cumulative.get(key)
+
+        if is_installment and cum is not None:
+            # Show the patient's overall balance — total charged from any appointment,
+            # minus all payments made so far.
+            display_total   = cum["total_charged"]
+            display_pending = cum["pending"]
+        elif own_total is not None:
+            display_total   = own_total
+            display_pending = max(own_total - own_paid, 0.0)
+        else:
+            display_total   = None
+            display_pending = None
+
         result.append({
-            "appointment_id": a.id,
-            "patient_name": a.patient_name,
+            "appointment_id":   a.id,
+            "patient_name":     a.patient_name,
             "appointment_date": a.appointment_date.isoformat() if a.appointment_date else None,
-            "reason": a.reason,
-            "total_amount": total,
-            "amount_paid": paid,
-            "pending_amount": pending,
-            "status": a.status.value if hasattr(a.status, "value") else a.status,
+            "reason":           a.reason,
+            "total_amount":     display_total,
+            "amount_paid":      own_paid,
+            "pending_amount":   display_pending,
+            "status":           a.status.value if hasattr(a.status, "value") else a.status,
         })
     return result
 
