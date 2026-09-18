@@ -6,6 +6,7 @@ import { Phone, MessageCircle, Save, AlertCircle, DollarSign, TrendingUp, Trendi
 import Modal from '../ui/Modal'
 import LoadingSpinner, { PageLoader } from '../ui/LoadingSpinner'
 import { appointmentApi } from '../../services/appointmentApi'
+import { clientApi } from '../../services/clientApi'
 import type { Appointment } from '../../types'
 import { APPOINTMENT_REASONS, APPOINTMENT_STATUSES } from '../../types'
 import { parseApiError, formatDate } from '../../utils/errorHandler'
@@ -71,16 +72,30 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
 
   // Cumulative patient-level totals across ALL their appointments (billable only).
   // Used to show context when this appointment is a follow-up payment with no total_amount.
+  // If allAppointments wasn't passed in (e.g. opened from AppointmentsPage), we fetch them
+  // automatically once we know the client_id from the loaded appointment.
+  const [fetchedPatientAppts, setFetchedPatientAppts] = useState<Appointment[] | null>(null)
+
+  useEffect(() => {
+    // Only fetch if the parent didn't supply them and the appointment is loaded with a client_id
+    if (allAppointments !== undefined) return
+    if (!appt?.client_id) return
+    clientApi.getAppointments(appt.client_id)
+      .then((r) => { if (r.success && r.data) setFetchedPatientAppts(r.data) })
+      .catch(() => { /* non-critical — summary will just not show */ })
+  }, [appt?.client_id, allAppointments])
+
+  const resolvedPatientAppts = allAppointments ?? fetchedPatientAppts ?? []
+
   const patientTotals = (() => {
-    if (!allAppointments || allAppointments.length === 0) return null
-    const billable = allAppointments.filter(
+    if (resolvedPatientAppts.length === 0) return null
+    const billable = resolvedPatientAppts.filter(
       (a) => a.status === 'CONFIRMED' || a.status === 'COMPLETED'
     )
     if (billable.length === 0) return null
     const totalCharged = billable.reduce((s, a) => s + (a.total_amount ?? 0), 0)
     const totalPaid = billable.reduce((s, a) => s + (a.amount_paid ?? 0), 0)
     const totalPending = Math.max(totalCharged - totalPaid, 0)
-    // Only show when there's a meaningful total across all appointments
     return totalCharged > 0 || totalPaid > 0 ? { totalCharged, totalPaid, totalPending } : null
   })()
 
