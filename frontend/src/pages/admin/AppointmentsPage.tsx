@@ -78,25 +78,19 @@ function AppointmentMessageModal({
     // Strip everything except digits and leading +
     let digits = appt.contact_number.replace(/[^\d+]/g, '')
 
-    // Convert Pakistani local format 03xxxxxxxxx → 923xxxxxxxxx for WhatsApp
+    // Convert Pakistani local format 03xxxxxxxxx → 923xxxxxxxxx
     // WhatsApp requires international format without the leading +
     if (digits.startsWith('0')) {
       digits = '92' + digits.slice(1)
     } else if (digits.startsWith('+')) {
-      digits = digits.slice(1) // remove the +
+      digits = digits.slice(1)
     }
 
     const encoded = encodeURIComponent(message)
 
-    // On desktop browsers, wa.me shows an intermediate landing page.
-    // web.whatsapp.com goes straight to the chat — better UX on laptop.
-    // On mobile/tablet, wa.me opens the app directly without a landing page.
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    const url = isMobile
-      ? `https://wa.me/${digits}?text=${encoded}`
-      : `https://web.whatsapp.com/send?phone=${digits}&text=${encoded}`
-
-    window.open(url, '_blank')
+    // whatsapp:// protocol opens the desktop/mobile app directly,
+    // bypassing the wa.me landing page entirely.
+    window.open(`whatsapp://send?phone=${digits}&text=${encoded}`, '_blank')
   }
 
   return (
