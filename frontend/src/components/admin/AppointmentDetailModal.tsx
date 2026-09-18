@@ -330,24 +330,35 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
                 </div>
               </div>
 
-              {/* Live pending summary — this appointment only */}
+              {/* Live pending summary — shows cumulative patient totals for installment visits,
+                  or this appointment's own figures when total_amount is set */}
               <div className="grid grid-cols-3 gap-2 pt-1">
                 <div className="bg-dark-600 rounded-lg p-2.5 text-center">
                   <div className="flex items-center justify-center gap-1 mb-0.5">
                     <TrendingUp size={11} className="text-blue-400" />
-                    <p className="text-xs text-gray-400">Charged</p>
+                    <p className="text-xs text-gray-400">
+                      {showPatientSummary ? 'Total Billed' : 'Charged'}
+                    </p>
                   </div>
                   <p className="text-sm font-semibold text-blue-300">
-                    {rs(parseFloat(watchedTotal || '0') || appt.total_amount || null)}
+                    {showPatientSummary && patientTotals
+                      ? rs(patientTotals.totalCharged)
+                      : rs(parseFloat(watchedTotal || '0') || appt.total_amount || null)
+                    }
                   </p>
                 </div>
                 <div className="bg-dark-600 rounded-lg p-2.5 text-center">
                   <div className="flex items-center justify-center gap-1 mb-0.5">
                     <TrendingDown size={11} className="text-emerald-400" />
-                    <p className="text-xs text-gray-400">Paid</p>
+                    <p className="text-xs text-gray-400">
+                      {showPatientSummary ? 'Total Paid' : 'Paid'}
+                    </p>
                   </div>
                   <p className="text-sm font-semibold text-emerald-300">
-                    {rs(parseFloat(watchedPaid || '0') || null)}
+                    {showPatientSummary && patientTotals
+                      ? rs(patientTotals.totalPaid)
+                      : rs(parseFloat(watchedPaid || '0') || null)
+                    }
                   </p>
                 </div>
                 <div className="bg-dark-600 rounded-lg p-2.5 text-center">
@@ -355,9 +366,15 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
                     <Minus size={11} className="text-amber-400" />
                     <p className="text-xs text-gray-400">Pending</p>
                   </div>
-                  <p className={`text-sm font-semibold ${livePending > 0 ? 'text-amber-300' : 'text-gray-400'}`}>
-                    {livePending > 0 ? `Rs. ${livePending.toLocaleString()}` : '—'}
-                  </p>
+                  {showPatientSummary && patientTotals ? (
+                    <p className={`text-sm font-semibold ${patientTotals.totalPending > 0 ? 'text-amber-300' : 'text-emerald-400'}`}>
+                      {patientTotals.totalPending > 0 ? rs(patientTotals.totalPending) : 'Rs. 0'}
+                    </p>
+                  ) : (
+                    <p className={`text-sm font-semibold ${livePending > 0 ? 'text-amber-300' : 'text-gray-400'}`}>
+                      {livePending > 0 ? `Rs. ${livePending.toLocaleString()}` : '—'}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

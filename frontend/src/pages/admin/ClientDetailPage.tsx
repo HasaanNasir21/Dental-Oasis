@@ -396,40 +396,72 @@ export default function ClientDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {appointments.map((appt) => {
-                    // pending is only meaningful when total_amount is set on this appointment
-                    const pending = appt.total_amount != null
-                      ? Math.max(appt.total_amount - (appt.amount_paid ?? 0), 0)
-                      : null
-                    return (
-                      <tr
-                        key={appt.id}
-                        className="border-b border-dark-600 hover:bg-dark-700/40 cursor-pointer"
-                        onClick={() => setSelectedApptId(appt.id)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => e.key === 'Enter' && setSelectedApptId(appt.id)}
-                        aria-label={`Edit appointment for ${appt.patient_name}`}
-                      >
-                        <td className="py-3 pr-4 text-white">
-                          {appt.appointment_date ? formatDate(appt.appointment_date) : formatDate(appt.created_at)}
-                        </td>
-                        <td className="py-3 pr-4 text-gray-300">{formatTime(appt.appointment_time)}</td>
-                        <td className="py-3 pr-4 text-gray-300">{appt.reason}</td>
-                        <td className="py-3 pr-4"><StatusBadge status={appt.status} /></td>
-                        <td className="py-3 pr-4 text-right text-blue-300">{rs(appt.total_amount)}</td>
-                        <td className="py-3 pr-4 text-right text-emerald-300">{rs(appt.amount_paid)}</td>
-                        <td className={`py-3 pr-4 text-right font-medium ${
-                          pending == null ? 'text-gray-500' : pending > 0 ? 'text-amber-300' : 'text-emerald-400'
-                        }`}>
-                          {pending == null ? '—' : pending > 0 ? rs(pending) : 'Rs. 0'}
-                        </td>
-                        <td className="py-3 text-center">
-                          <PaymentBadge total={appt.total_amount} paid={appt.amount_paid} />
-                        </td>
-                      </tr>
+                  {(() => {
+                    // Precompute patient-wide billable totals so installment rows
+                    // (no total_amount on that visit) can show cumulative figures.
+                    const billableAll = appointments.filter(
+                      (a) => a.status === 'CONFIRMED' || a.status === 'COMPLETED'
                     )
-                  })}
+                    const patientTotalCharged = billableAll.reduce((s, a) => s + (a.total_amount ?? 0), 0)
+                    const patientTotalPaid    = billableAll.reduce((s, a) => s + (a.amount_paid  ?? 0), 0)
+                    const patientPending      = Math.max(patientTotalCharged - patientTotalPaid, 0)
+
+                    return appointments.map((appt) => {
+                      const isInstallment = appt.total_amount == null && (appt.amount_paid ?? 0) > 0
+                      const billable = appt.status === 'CONFIRMED' || appt.status === 'COMPLETED'
+
+                      // For installment rows, show patient-wide cumulative figures (dimmed)
+                      // so the doctor always sees the full treatment cost and balance.
+                      const displayCharged = isInstallment && billable ? patientTotalCharged : appt.total_amount
+                      const displayPaid    = appt.amount_paid
+                      const displayPending = isInstallment && billable
+                        ? patientPending
+                        : appt.total_amount != null
+                          ? Math.max(appt.total_amount - (appt.amount_paid ?? 0), 0)
+                          : null
+
+                      return (
+                        <tr
+                          key={appt.id}
+                          className="border-b border-dark-600 hover:bg-dark-700/40 cursor-pointer"
+                          onClick={() => setSelectedApptId(appt.id)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === 'Enter' && setSelectedApptId(appt.id)}
+                          aria-label={`Edit appointment for ${appt.patient_name}`}
+                        >
+                          <td className="py-3 pr-4 text-white">
+                            {appt.appointment_date ? formatDate(appt.appointment_date) : formatDate(appt.created_at)}
+                          </td>
+                          <td className="py-3 pr-4 text-gray-300">{formatTime(appt.appointment_time)}</td>
+                          <td className="py-3 pr-4 text-gray-300">{appt.reason}</td>
+                          <td className="py-3 pr-4"><StatusBadge status={appt.status} /></td>
+                          <td className="py-3 pr-4 text-right">
+                            {isInstallment && billable ? (
+                              <span className="text-blue-300/70 italic text-xs" title="Cumulative treatment total">
+                                {rs(displayCharged)}
+                              </span>
+                            ) : (
+                              <span className="text-blue-300">{rs(displayCharged)}</span>
+                            )}
+                          </td>
+                          <td className="py-3 pr-4 text-right text-emerald-300">{rs(displayPaid)}</td>
+                          <td className={`py-3 pr-4 text-right font-medium ${
+                            displayPending == null ? 'text-gray-500'
+                            : displayPending > 0   ? 'text-amber-300'
+                                                   : 'text-emerald-400'
+                          }`}>
+                            {displayPending == null ? '—'
+                              : displayPending > 0  ? rs(displayPending)
+                                                    : 'Rs. 0'}
+                          </td>
+                          <td className="py-3 text-center">
+                            <PaymentBadge total={appt.total_amount} paid={appt.amount_paid} />
+                          </td>
+                        </tr>
+                      )
+                    })
+                  })()}
                 </tbody>
                 {/* Totals footer — only CONFIRMED + COMPLETED appointments */}
                 {(() => {
