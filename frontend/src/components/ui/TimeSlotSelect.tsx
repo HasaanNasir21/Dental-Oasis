@@ -26,7 +26,7 @@ function generateSlots(): { value: string; label: string }[] {
   let h = OPEN_HOUR
   let m = OPEN_MIN
 
-  while (h < CLOSE_HOUR || (h === CLOSE_HOUR && m < CLOSE_MIN)) {
+  while (h < CLOSE_HOUR || (h === CLOSE_HOUR && m <= CLOSE_MIN)) {
     const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
     const label = formatSlotLabel(h, m)
     slots.push({ value, label })
