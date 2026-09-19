@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { Phone, MessageCircle, Save, AlertCircle, DollarSign, TrendingUp, TrendingDown, Minus, Users } from 'lucide-react'
 import Modal from '../ui/Modal'
 import LoadingSpinner, { PageLoader } from '../ui/LoadingSpinner'
+import TimeSlotSelect from '../ui/TimeSlotSelect'
 import { appointmentApi } from '../../services/appointmentApi'
 import { clientApi } from '../../services/clientApi'
 import type { Appointment } from '../../types'
@@ -245,7 +246,7 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
               {/* Time */}
               <div>
                 <label className="label text-xs" htmlFor="appt-time">Appointment Time</label>
-                <input id="appt-time" type="time" className="input text-sm" {...register('appointment_time')} />
+                <TimeSlotSelect id="appt-time" className="input text-sm" {...register('appointment_time')} />
               </div>
             </div>
 

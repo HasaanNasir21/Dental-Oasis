@@ -30,7 +30,7 @@ def validate_appointment_time(appointment_time: time) -> None:
     close_t = clinic_close_time()
     if not (open_t <= appointment_time < close_t):
         raise OutsideClinicHoursError(
-            "Selected time is outside clinic hours. Clinic is open Monday-Saturday, 5:00 PM - 9:00 PM."
+            "Selected time is outside clinic hours. Clinic is open Monday-Saturday, 5:00 PM - 10:00 PM."
         )
 
 

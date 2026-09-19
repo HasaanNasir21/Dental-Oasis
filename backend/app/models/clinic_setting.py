@@ -15,7 +15,7 @@ class ClinicSetting(Base):
     whatsapp = Column(String(50), nullable=True)
     email = Column(String(255), nullable=True)
     google_maps_url = Column(String(500), nullable=True)
-    hours_monday_saturday = Column(String(100), nullable=False, default="5:00 PM - 9:00 PM")
+    hours_monday_saturday = Column(String(100), nullable=False, default="5:00 PM - 10:00 PM")
     hours_sunday = Column(String(100), nullable=False, default="Closed")
     social_facebook = Column(String(500), nullable=True)
     social_instagram = Column(String(500), nullable=True)

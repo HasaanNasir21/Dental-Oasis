@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     CLINIC_GOOGLE_MAPS_URL: str = "https://maps.google.com/?q=270+Block+E2+Johar+Town+Lahore"
     CLINIC_TIMEZONE: str = "Asia/Karachi"
     CLINIC_OPEN_TIME: str = "17:00"
-    CLINIC_CLOSE_TIME: str = "21:00"
+    CLINIC_CLOSE_TIME: str = "22:00"
 
     @property
     def cors_origins_list(self) -> List[str]:

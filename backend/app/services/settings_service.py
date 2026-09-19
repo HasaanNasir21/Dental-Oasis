@@ -29,7 +29,7 @@ def _defaults() -> dict:
         "whatsapp": env_settings.CLINIC_WHATSAPP or None,
         "email": env_settings.CLINIC_EMAIL or None,
         "google_maps_url": env_settings.CLINIC_GOOGLE_MAPS_URL or None,
-        "hours_monday_saturday": "5:00 PM - 9:00 PM",
+        "hours_monday_saturday": "5:00 PM - 10:00 PM",
         "hours_sunday": "Closed",
         "social_facebook": None,
         "social_instagram": None,

@@ -135,7 +135,7 @@ export default function SettingsPage() {
           </h2>
           <div>
             {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => (
-              <HoursRow key={day} day={day} hours={settings?.opening_hours?.monday_saturday ?? '5:00 PM – 9:00 PM'} isOpen />
+              <HoursRow key={day} day={day} hours={settings?.opening_hours?.monday_saturday ?? '5:00 PM – 10:00 PM'} isOpen />
             ))}
             <HoursRow day="Sunday" hours={settings?.opening_hours?.sunday ?? 'Closed'} isOpen={false} />
           </div>

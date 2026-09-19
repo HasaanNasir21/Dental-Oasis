@@ -17,6 +17,7 @@ import ErrorState from '../../components/ui/ErrorState'
 import EmptyState from '../../components/ui/EmptyState'
 import StatusBadge from '../../components/ui/StatusBadge'
 import Modal from '../../components/ui/Modal'
+import TimeSlotSelect from '../../components/ui/TimeSlotSelect'
 import { parseApiError, formatDate, formatTime } from '../../utils/errorHandler'
 import { useToast } from '../../context/ToastContext'
 import AppointmentDetailModal from '../../components/admin/AppointmentDetailModal'
@@ -114,7 +115,7 @@ function ClientAppointmentForm({
           </div>
           <div>
             <label className="label" htmlFor="appointment_time">Time</label>
-            <input id="appointment_time" type="time" className="input" {...register('appointment_time')} />
+            <TimeSlotSelect id="appointment_time" className="input" {...register('appointment_time')} />
             {errors.appointment_time && <p className="field-error">{errors.appointment_time.message}</p>}
           </div>
         </div>
