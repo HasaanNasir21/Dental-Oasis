@@ -7,16 +7,16 @@
  * Clinic hours: 5:00 PM – 10:00 PM  →  17:00 – 22:00
  * Slots: 17:00, 17:15, 17:30, 17:45, 18:00 … 21:45  (last slot before 22:00)
  *
- * The value passed in and emitted is always "HH:MM" (24-hour, no seconds),
- * matching what the backend stores in the `appointment_time` column.
+ * Extends React.SelectHTMLAttributes so react-hook-form's register() spread
+ * works directly without any type conflicts.
  */
 
 import React from 'react'
 
 // ── Clinic hours configuration ──────────────────────────────────────────────
-const OPEN_HOUR = 17   // 5 PM
+const OPEN_HOUR = 17    // 5 PM
 const OPEN_MIN  = 0
-const CLOSE_HOUR = 22  // 10 PM  (exclusive — last slot is 21:45)
+const CLOSE_HOUR = 22   // 10 PM  (exclusive — last slot is 21:45)
 const CLOSE_MIN  = 0
 const STEP_MINUTES = 15
 
@@ -41,50 +41,29 @@ function generateSlots(): { value: string; label: string }[] {
   return slots
 }
 
-function formatSlotLabel(hour: number, minute: number): string {
+export function formatSlotLabel(hour: number, minute: number): string {
   const period = hour >= 12 ? 'PM' : 'AM'
   const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
   const displayMin = String(minute).padStart(2, '0')
   return `${displayHour}:${displayMin} ${period}`
 }
 
-const TIME_SLOTS = generateSlots()
+export const TIME_SLOTS = generateSlots()
 
 // ── Component ────────────────────────────────────────────────────────────────
-interface TimeSlotSelectProps {
-  id?: string
-  value?: string           // "HH:MM" or "" or undefined
-  onChange?: (value: string) => void
-  className?: string
-  disabled?: boolean
+// Extends SelectHTMLAttributes so react-hook-form register() spreads
+// (which pass a native ChangeEvent onChange) work without type errors.
+export interface TimeSlotSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   placeholder?: string
-  /** react-hook-form ref forwarding */
-  name?: string
 }
 
 const TimeSlotSelect = React.forwardRef<HTMLSelectElement, TimeSlotSelectProps>(
-  (
-    {
-      id,
-      value,
-      onChange,
-      className = 'input text-sm',
-      disabled,
-      placeholder = '— Select time —',
-      name,
-      ...rest
-    },
-    ref,
-  ) => {
+  ({ id, className = 'input text-sm', placeholder = '— Select time —', ...rest }, ref) => {
     return (
       <select
         id={id}
-        name={name}
         ref={ref}
-        value={value ?? ''}
-        onChange={(e) => onChange?.(e.target.value)}
         className={className}
-        disabled={disabled}
         aria-label="Appointment time"
         {...rest}
       >
@@ -102,4 +81,3 @@ const TimeSlotSelect = React.forwardRef<HTMLSelectElement, TimeSlotSelectProps>(
 TimeSlotSelect.displayName = 'TimeSlotSelect'
 
 export default TimeSlotSelect
-export { TIME_SLOTS, generateSlots, formatSlotLabel }
