@@ -36,25 +36,19 @@ def get_current_month_payment_log(db: Session) -> List[Dict[str, Any]]:
     today = clinic_today()
     year, month = today.year, today.month
 
-    # Effective payment date: last_payment_date preferred, appointment_date as fallback
-    effective_date = func.coalesce(
-        Appointment.last_payment_date,
-        Appointment.appointment_date,
-    )
-
     rows = (
         db.query(Appointment)
         .filter(
-            extract("year", effective_date) == year,
-            extract("month", effective_date) == month,
+            Appointment.last_payment_date.isnot(None),
+            extract("year", Appointment.last_payment_date) == year,
+            extract("month", Appointment.last_payment_date) == month,
             Appointment.amount_paid.isnot(None),
             Appointment.amount_paid > 0,
             Appointment.status.in_(BILLABLE_STATUSES),
         )
-        .order_by(effective_date, Appointment.patient_name)
+        .order_by(Appointment.last_payment_date, Appointment.patient_name)
         .all()
     )
-
     # Pre-build a map of client_id → cumulative (total_charged, total_paid) across ALL
     # their billable appointments (not just this month) so installment rows can show
     # the true running balance.

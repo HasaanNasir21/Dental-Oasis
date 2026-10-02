@@ -64,20 +64,11 @@ def get_current_month_payments(db: Session) -> CurrentMonthPayments:
       • An appointment dated Oct 4 but paid on Sep 30 → counts in September.
       • An appointment dated Sep 20 but paid on Oct 1 → counts in October.
 
-    Appointments with no `last_payment_date` yet recorded fall back to
-    `appointment_date` for backward compatibility (e.g. legacy rows created
-    before this column was added that already have amount_paid set).
-
-    Only CONFIRMED and COMPLETED appointments are counted.
+    Only CONFIRMED and COMPLETED appointments that have last_payment_date set
+    are counted. Appointments with no payment recorded are excluded entirely.
     """
     today = clinic_today()
     year, month = today.year, today.month
-
-    # The "effective payment date" is last_payment_date if set, else appointment_date.
-    effective_date = func.coalesce(
-        Appointment.last_payment_date,
-        Appointment.appointment_date,
-    )
 
     rows = (
         db.query(
@@ -86,8 +77,9 @@ def get_current_month_payments(db: Session) -> CurrentMonthPayments:
             func.count(Appointment.id.distinct()).label("appointment_count"),
         )
         .filter(
-            extract("year", effective_date) == year,
-            extract("month", effective_date) == month,
+            Appointment.last_payment_date.isnot(None),
+            extract("year", Appointment.last_payment_date) == year,
+            extract("month", Appointment.last_payment_date) == month,
             Appointment.status.in_(BILLABLE_STATUSES),
         )
         .one()
@@ -96,8 +88,9 @@ def get_current_month_payments(db: Session) -> CurrentMonthPayments:
     patient_count = (
         db.query(func.count(func.distinct(Appointment.patient_name)))
         .filter(
-            extract("year", effective_date) == year,
-            extract("month", effective_date) == month,
+            Appointment.last_payment_date.isnot(None),
+            extract("year", Appointment.last_payment_date) == year,
+            extract("month", Appointment.last_payment_date) == month,
             Appointment.status.in_(BILLABLE_STATUSES),
         )
         .scalar()
@@ -196,8 +189,8 @@ def _archive_month(db: Session, year: int, month: int, snapshot_date: date) -> i
     MonthlyPaymentSummary rows (one per patient). Returns number of patients
     archived. Idempotent — existing rows for the same period are deleted first.
 
-    Revenue is bucketed by the "effective payment date":
-      last_payment_date (when set) → appointment_date (fallback for legacy rows).
+    Revenue is bucketed purely by last_payment_date — the date the payment was
+    actually entered. Appointments with no last_payment_date are excluded.
     """
     # Remove any previous snapshot for this period (allows re-running safely)
     db.query(MonthlyPaymentSummary).filter(
@@ -205,14 +198,7 @@ def _archive_month(db: Session, year: int, month: int, snapshot_date: date) -> i
         MonthlyPaymentSummary.month == month,
     ).delete(synchronize_session=False)
 
-    # The effective payment date — last_payment_date preferred, appointment_date as fallback
-    effective_date = func.coalesce(
-        Appointment.last_payment_date,
-        Appointment.appointment_date,
-    )
-
-    # Aggregate per patient (group by client_id + patient_name to handle
-    # the case where client_id is NULL but we still know the patient name)
+    # Aggregate per patient using last_payment_date directly (no fallback)
     rows = (
         db.query(
             Appointment.client_id,
@@ -222,8 +208,9 @@ def _archive_month(db: Session, year: int, month: int, snapshot_date: date) -> i
             func.count(Appointment.id).label("appointment_count"),
         )
         .filter(
-            extract("year", effective_date) == year,
-            extract("month", effective_date) == month,
+            Appointment.last_payment_date.isnot(None),
+            extract("year", Appointment.last_payment_date) == year,
+            extract("month", Appointment.last_payment_date) == month,
             Appointment.status.in_(BILLABLE_STATUSES),
         )
         .group_by(Appointment.client_id, Appointment.patient_name)

@@ -51,6 +51,18 @@ def upgrade() -> None:
             unique=False,
         )
 
+    # Backfill last_payment_date for existing appointments that already have
+    # amount_paid recorded. Use DATE(updated_at) as the best proxy for when
+    # the payment was actually entered — this preserves the correct month
+    # attribution for all historical data.
+    conn.execute(sa.text("""
+        UPDATE appointments
+        SET last_payment_date = DATE(updated_at)
+        WHERE amount_paid IS NOT NULL
+          AND amount_paid > 0
+          AND last_payment_date IS NULL
+    """))
+
 
 def downgrade() -> None:
     op.drop_index("ix_appointments_last_payment_date", table_name="appointments")
