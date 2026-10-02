@@ -57,11 +57,27 @@ def _previous_month(year: int, month: int):
 
 def get_current_month_payments(db: Session) -> CurrentMonthPayments:
     """
-    Aggregate payment data for appointments in the current calendar month
-    (clinic timezone). Only billable statuses are counted.
+    Aggregate payment data for the current calendar month (clinic timezone).
+
+    Revenue is attributed by `last_payment_date` — the date the payment was
+    actually recorded — NOT by `appointment_date`.  This means:
+      • An appointment dated Oct 4 but paid on Sep 30 → counts in September.
+      • An appointment dated Sep 20 but paid on Oct 1 → counts in October.
+
+    Appointments with no `last_payment_date` yet recorded fall back to
+    `appointment_date` for backward compatibility (e.g. legacy rows created
+    before this column was added that already have amount_paid set).
+
+    Only CONFIRMED and COMPLETED appointments are counted.
     """
     today = clinic_today()
     year, month = today.year, today.month
+
+    # The "effective payment date" is last_payment_date if set, else appointment_date.
+    effective_date = func.coalesce(
+        Appointment.last_payment_date,
+        Appointment.appointment_date,
+    )
 
     rows = (
         db.query(
@@ -70,8 +86,8 @@ def get_current_month_payments(db: Session) -> CurrentMonthPayments:
             func.count(Appointment.id.distinct()).label("appointment_count"),
         )
         .filter(
-            extract("year", Appointment.appointment_date) == year,
-            extract("month", Appointment.appointment_date) == month,
+            extract("year", effective_date) == year,
+            extract("month", effective_date) == month,
             Appointment.status.in_(BILLABLE_STATUSES),
         )
         .one()
@@ -80,8 +96,8 @@ def get_current_month_payments(db: Session) -> CurrentMonthPayments:
     patient_count = (
         db.query(func.count(func.distinct(Appointment.patient_name)))
         .filter(
-            extract("year", Appointment.appointment_date) == year,
-            extract("month", Appointment.appointment_date) == month,
+            extract("year", effective_date) == year,
+            extract("month", effective_date) == month,
             Appointment.status.in_(BILLABLE_STATUSES),
         )
         .scalar()
@@ -179,12 +195,21 @@ def _archive_month(db: Session, year: int, month: int, snapshot_date: date) -> i
     Aggregate appointment payments for the given year/month and insert
     MonthlyPaymentSummary rows (one per patient). Returns number of patients
     archived. Idempotent — existing rows for the same period are deleted first.
+
+    Revenue is bucketed by the "effective payment date":
+      last_payment_date (when set) → appointment_date (fallback for legacy rows).
     """
     # Remove any previous snapshot for this period (allows re-running safely)
     db.query(MonthlyPaymentSummary).filter(
         MonthlyPaymentSummary.year == year,
         MonthlyPaymentSummary.month == month,
     ).delete(synchronize_session=False)
+
+    # The effective payment date — last_payment_date preferred, appointment_date as fallback
+    effective_date = func.coalesce(
+        Appointment.last_payment_date,
+        Appointment.appointment_date,
+    )
 
     # Aggregate per patient (group by client_id + patient_name to handle
     # the case where client_id is NULL but we still know the patient name)
@@ -197,8 +222,8 @@ def _archive_month(db: Session, year: int, month: int, snapshot_date: date) -> i
             func.count(Appointment.id).label("appointment_count"),
         )
         .filter(
-            extract("year", Appointment.appointment_date) == year,
-            extract("month", Appointment.appointment_date) == month,
+            extract("year", effective_date) == year,
+            extract("month", effective_date) == month,
             Appointment.status.in_(BILLABLE_STATUSES),
         )
         .group_by(Appointment.client_id, Appointment.patient_name)

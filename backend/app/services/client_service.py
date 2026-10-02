@@ -67,7 +67,7 @@ def list_clients(
 
     total = query.count()
     clients = (
-        query.order_by(Client.name.asc())
+        query.order_by(Client.created_at.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
         .all()

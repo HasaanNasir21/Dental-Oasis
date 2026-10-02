@@ -21,6 +21,18 @@ export interface PaginationMeta {
   total_pages: number
 }
 
+// ---- Appointment File ----
+
+export interface AppointmentFile {
+  id: number
+  appointment_id: number
+  file_url: string
+  /** "image" or "pdf" */
+  file_type: 'image' | 'pdf'
+  file_name: string
+  uploaded_at: string
+}
+
 // ---- Appointment ----
 
 export type AppointmentStatus =
@@ -83,6 +95,8 @@ export interface Appointment {
   address: string | null
   reason: string
   other_problem: string | null
+  /** Multi-treatment list. When present, use instead of `reason` for display. Falls back to [reason] for legacy appointments. */
+  treatments: string[] | null
   status: AppointmentStatus
   appointment_date: string | null
   appointment_time: string | null
@@ -91,8 +105,12 @@ export interface Appointment {
   total_amount: number | null
   /** Amount the patient has already paid */
   amount_paid: number | null
+  /** Date when amount_paid was last recorded — used for monthly revenue bucketing */
+  last_payment_date: string | null
   created_at: string
   updated_at: string
+  /** Files attached to this appointment (x-rays, PDFs, etc.) */
+  files: AppointmentFile[]
 }
 
 export interface AppointmentListItem {
@@ -101,6 +119,7 @@ export interface AppointmentListItem {
   patient_name: string
   contact_number: string
   reason: string
+  treatments: string[] | null
   status: AppointmentStatus
   appointment_date: string | null
   appointment_time: string | null
@@ -124,6 +143,8 @@ export interface AppointmentCreate {
   address?: string
   reason: string
   other_problem?: string
+  /** Optional list of treatments — overrides `reason` for display when set */
+  treatments?: string[]
   status: AppointmentStatus
   appointment_date?: string
   appointment_time?: string
@@ -139,6 +160,8 @@ export interface AppointmentUpdate {
   address?: string
   reason?: string
   other_problem?: string
+  /** Send updated list to change treatments; send [] to clear to single-reason mode */
+  treatments?: string[]
   status?: AppointmentStatus
   appointment_date?: string | null
   appointment_time?: string | null

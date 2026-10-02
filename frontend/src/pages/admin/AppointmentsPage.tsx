@@ -39,6 +39,12 @@ function AppointmentMessageModal({
   if (clinicPhone) contactLines.push(clinicPhone)
   if (clinicWhatsApp && clinicWhatsApp !== clinicPhone) contactLines.push(clinicWhatsApp)
 
+  // Build the treatment display string — use treatments list if available, otherwise reason
+  const treatmentDisplay =
+    appt.treatments && appt.treatments.length > 0
+      ? appt.treatments.join(', ')
+      : appt.reason
+
   const message = [
     `Appointment Confirmation – ${clinicName}`,
     ``,
@@ -46,7 +52,7 @@ function AppointmentMessageModal({
     ``,
     `Your appointment at ${clinicName} has been successfully confirmed.`,
     ``,
-    `Treatment: ${appt.reason}`,
+    `Treatment: ${treatmentDisplay}`,
     `Date: ${appt.appointment_date ? formatDate(appt.appointment_date) : '—'}`,
     `Time: ${appt.appointment_time ? formatTime(appt.appointment_time) : '—'}`,
     ``,
@@ -318,7 +324,17 @@ export default function AppointmentsPage() {
                   <tr key={appt.id} className="border-b border-dark-600 hover:bg-dark-600/40 transition-colors">
                     <td className="px-4 py-3 font-medium text-white whitespace-nowrap">{appt.patient_name}</td>
                     <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{appt.contact_number}</td>
-                    <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{appt.reason}</td>
+                    <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
+                      {appt.treatments && appt.treatments.length > 1
+                        ? (
+                          <span title={appt.treatments.join(', ')}>
+                            {appt.treatments[0]}
+                            <span className="ml-1 text-xs text-primary-400">+{appt.treatments.length - 1}</span>
+                          </span>
+                        )
+                        : appt.reason
+                      }
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <StatusBadge status={appt.status} />
                     </td>

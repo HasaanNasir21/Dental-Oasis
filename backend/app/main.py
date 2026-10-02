@@ -21,7 +21,7 @@ from app.routers.monthly_payments import router as monthly_payments_router
 setup_logging()
 logger = logging.getLogger(__name__)
 
-MAX_REQUEST_BYTES = 1_000_000
+MAX_REQUEST_BYTES = 12_000_000  # 12 MB — allows up to 10 MB file uploads
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):

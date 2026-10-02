@@ -27,27 +27,31 @@ def _serialize_appointment(a: Appointment) -> dict:
 def get_current_month_payment_log(db: Session) -> List[Dict[str, Any]]:
     """
     Return every appointment in the current calendar month that has an
-    amount_paid recorded, ordered by appointment_date then patient name.
-    Each entry represents one payment event shown in the dashboard log.
+    amount_paid recorded, ordered by effective payment date then patient name.
 
-    For installment rows (no total_amount on this appointment), the
-    pending_amount is computed from the patient's cumulative balance across
-    ALL their billable appointments so the dashboard always shows 0 or the
-    real remaining balance — never "Installment".
+    Revenue is bucketed by `last_payment_date` (when set) or `appointment_date`
+    as fallback. This means a payment entered in September for an October
+    appointment appears in September's log — and vice versa.
     """
     today = clinic_today()
     year, month = today.year, today.month
 
+    # Effective payment date: last_payment_date preferred, appointment_date as fallback
+    effective_date = func.coalesce(
+        Appointment.last_payment_date,
+        Appointment.appointment_date,
+    )
+
     rows = (
         db.query(Appointment)
         .filter(
-            extract("year", Appointment.appointment_date) == year,
-            extract("month", Appointment.appointment_date) == month,
+            extract("year", effective_date) == year,
+            extract("month", effective_date) == month,
             Appointment.amount_paid.isnot(None),
             Appointment.amount_paid > 0,
             Appointment.status.in_(BILLABLE_STATUSES),
         )
-        .order_by(Appointment.appointment_date, Appointment.patient_name)
+        .order_by(effective_date, Appointment.patient_name)
         .all()
     )
 
@@ -173,7 +177,6 @@ def get_dashboard_stats(db: Session) -> Dict[str, Any]:
         db.query(Appointment)
         .filter(
             Appointment.appointment_date == today,
-            Appointment.status == AppointmentStatus.CONFIRMED.value,
         )
         .order_by(Appointment.appointment_time)
         .all()

@@ -1,9 +1,10 @@
 from pydantic import BaseModel, field_validator, model_validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, date, time
 from decimal import Decimal
 from app.models.appointment import AppointmentStatus, AppointmentReason
 import re
+import json
 
 
 def validate_contact_number(v: str) -> str:
@@ -86,6 +87,9 @@ class AppointmentCreate(BaseModel):
     address: Optional[str] = None
     reason: str
     other_problem: Optional[str] = None
+    # Multiple treatments — takes precedence over `reason` for display when populated.
+    # Each entry must be a valid AppointmentReason value.
+    treatments: Optional[List[str]] = None
     status: AppointmentStatus = AppointmentStatus.CONFIRMED
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
@@ -116,6 +120,16 @@ class AppointmentCreate(BaseModel):
             raise ValueError(f"Invalid reason.")
         return v
 
+    @field_validator("treatments")
+    @classmethod
+    def validate_treatments(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is not None:
+            valid_reasons = [r.value for r in AppointmentReason]
+            for treatment in v:
+                if treatment not in valid_reasons:
+                    raise ValueError(f"Invalid treatment: {treatment}")
+        return v
+
     @field_validator("total_amount", "amount_paid")
     @classmethod
     def validate_positive(cls, v: Optional[Decimal]) -> Optional[Decimal]:
@@ -131,6 +145,8 @@ class AppointmentUpdate(BaseModel):
     address: Optional[str] = None
     reason: Optional[str] = None
     other_problem: Optional[str] = None
+    # Multiple treatments — send an empty list [] to clear back to single-reason mode.
+    treatments: Optional[List[str]] = None
     status: Optional[AppointmentStatus] = None
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
@@ -163,6 +179,16 @@ class AppointmentUpdate(BaseModel):
                 raise ValueError("Invalid reason.")
         return v
 
+    @field_validator("treatments")
+    @classmethod
+    def validate_treatments(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is not None:
+            valid_reasons = [r.value for r in AppointmentReason]
+            for treatment in v:
+                if treatment not in valid_reasons:
+                    raise ValueError(f"Invalid treatment: {treatment}")
+        return v
+
     @field_validator("total_amount", "amount_paid")
     @classmethod
     def validate_positive(cls, v: Optional[Decimal]) -> Optional[Decimal]:
@@ -179,16 +205,39 @@ class AppointmentOut(BaseModel):
     address: Optional[str] = None
     reason: str
     other_problem: Optional[str] = None
+    # Decoded list of treatment names. Populated from the DB `treatments` JSON column.
+    # Falls back to [reason] when treatments column is NULL (legacy appointments).
+    treatments: Optional[List[str]] = None
     status: AppointmentStatus
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
     notes: Optional[str] = None
     total_amount: Optional[Decimal] = None
     amount_paid: Optional[Decimal] = None
+    # Date when amount_paid was last recorded — used for monthly revenue bucketing.
+    last_payment_date: Optional[date] = None
     created_at: datetime
     updated_at: datetime
+    files: List["AppointmentFileOut"] = []
 
     model_config = {"from_attributes": True}
+
+    @field_validator("treatments", mode="before")
+    @classmethod
+    def decode_treatments(cls, v):
+        """Decode JSON string from DB into a Python list."""
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, ValueError):
+                return [v]
+        return v
+
+
+# Imported here to avoid circular import — AppointmentFileOut needs AppointmentOut
+# to be defined first (it's used inside it via forward ref).
+from app.schemas.appointment_file import AppointmentFileOut  # noqa: E402
+AppointmentOut.model_rebuild()
 
 
 class AppointmentList(BaseModel):
@@ -197,6 +246,7 @@ class AppointmentList(BaseModel):
     patient_name: str
     contact_number: str
     reason: str
+    treatments: Optional[List[str]] = None
     status: AppointmentStatus
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
@@ -205,3 +255,14 @@ class AppointmentList(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_validator("treatments", mode="before")
+    @classmethod
+    def decode_treatments(cls, v):
+        """Decode JSON string from DB into a Python list."""
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, ValueError):
+                return [v]
+        return v

@@ -6,13 +6,15 @@ from app.models.appointment import Appointment, AppointmentStatus
 from app.models.client import Client
 from app.schemas.appointment import PublicAppointmentCreate, AppointmentCreate, AppointmentUpdate
 from app.utils.exceptions import NotFoundError, AppointmentConflictError, ConflictError
-from app.utils.validators import validate_appointment_datetime
+from app.utils.validators import validate_appointment_datetime, clinic_open_time, clinic_close_time
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
 ACTIVE_STATUSES = [AppointmentStatus.CONTACTED, AppointmentStatus.CONFIRMED]
 DUPLICATE_WINDOW_MINUTES = 10
+SLOT_STEP_MINUTES = 15
 
 
 def check_appointment_conflict(
@@ -33,6 +35,78 @@ def check_appointment_conflict(
     if for_update:
         query = query.with_for_update()
     return query.first() is not None
+
+
+def _generate_all_slots(on_date: date) -> List[time]:
+    """Generate all 15-minute time slots within clinic hours for a given date.
+    Returns an empty list if the date is a Sunday (clinic closed)."""
+    if on_date.weekday() == 6:  # Sunday
+        return []
+
+    open_t = clinic_open_time()
+    close_t = clinic_close_time()
+    slots: List[time] = []
+    h, m = open_t.hour, open_t.minute
+    while True:
+        t = time(h, m)
+        if t >= close_t:
+            break
+        slots.append(t)
+        m += SLOT_STEP_MINUTES
+        if m >= 60:
+            m -= 60
+            h += 1
+    return slots
+
+
+def get_available_slots(
+    db: Session,
+    on_date: date,
+    exclude_id: Optional[int] = None,
+) -> List[str]:
+    """
+    Return a list of HH:MM time strings that are still available on the given date.
+    A slot is unavailable when an ACTIVE (CONTACTED or CONFIRMED) appointment
+    already occupies it. PENDING, COMPLETED, CANCELLED, and NO_SHOW do not block slots.
+    """
+    all_slots = _generate_all_slots(on_date)
+    if not all_slots:
+        return []
+
+    # Fetch all booked times for ACTIVE appointments on this date
+    query = db.query(Appointment.appointment_time).filter(
+        Appointment.appointment_date == on_date,
+        Appointment.appointment_time.isnot(None),
+        Appointment.status.in_([s.value for s in ACTIVE_STATUSES]),
+    )
+    if exclude_id:
+        query = query.filter(Appointment.id != exclude_id)
+
+    # Normalise whatever the DB driver returns (datetime.time or timedelta) to HH:MM strings
+    # so the comparison with generated slots is always type-safe.
+    booked_strs: set = set()
+    for row in query.all():
+        t = row.appointment_time
+        if t is None:
+            continue
+        if isinstance(t, time):
+            booked_strs.add(f"{t.hour:02d}:{t.minute:02d}")
+        elif isinstance(t, timedelta):
+            # PyMySQL sometimes returns TIME columns as timedelta
+            total_secs = int(t.total_seconds())
+            h = total_secs // 3600
+            m = (total_secs % 3600) // 60
+            booked_strs.add(f"{h:02d}:{m:02d}")
+        else:
+            # Fallback: stringify and take HH:MM
+            booked_strs.add(str(t)[:5])
+
+    available = []
+    for slot in all_slots:
+        slot_str = f"{slot.hour:02d}:{slot.minute:02d}"
+        if slot_str not in booked_strs:
+            available.append(slot_str)
+    return available
 
 
 def create_public_appointment(db: Session, data: PublicAppointmentCreate) -> Appointment:
@@ -93,6 +167,16 @@ def create_admin_appointment(db: Session, data: AppointmentCreate) -> Appointmen
         total_amount=data.total_amount,
         amount_paid=data.amount_paid,
     )
+
+    # Store multi-treatment list if provided
+    if data.treatments:
+        appointment.treatments = json.dumps(data.treatments)
+
+    # Set last_payment_date when amount_paid is being recorded
+    if data.amount_paid is not None:
+        from app.timezone_utils import clinic_today
+        appointment.last_payment_date = clinic_today()
+
     db.add(appointment)
     db.commit()
     db.refresh(appointment)
@@ -163,6 +247,19 @@ def update_appointment(db: Session, appointment_id: int, data: AppointmentUpdate
                 db, new_date, new_time, exclude_id=appointment_id, for_update=True
             ):
                 raise AppointmentConflictError()
+
+    # Handle treatments separately — encode list to JSON string
+    treatments_list = update_data.pop("treatments", None)
+    if treatments_list is not None:
+        # Empty list [] clears treatments (falls back to single `reason`)
+        appointment.treatments = json.dumps(treatments_list) if treatments_list else None
+
+    # Track payment date: when amount_paid is set or changed, record today as last_payment_date
+    if "amount_paid" in update_data:
+        new_paid = update_data.get("amount_paid")
+        if new_paid is not None:
+            from app.timezone_utils import clinic_today
+            appointment.last_payment_date = clinic_today()
 
     for field, value in update_data.items():
         setattr(appointment, field, value)

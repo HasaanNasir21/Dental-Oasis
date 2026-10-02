@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Phone, MessageCircle, Save, AlertCircle, DollarSign, TrendingUp, TrendingDown, Minus, Users } from 'lucide-react'
 import Modal from '../ui/Modal'
 import LoadingSpinner, { PageLoader } from '../ui/LoadingSpinner'
 import TimeSlotSelect from '../ui/TimeSlotSelect'
+import TreatmentSelect from '../ui/TreatmentSelect'
 import { appointmentApi } from '../../services/appointmentApi'
 import { clientApi } from '../../services/clientApi'
-import type { Appointment } from '../../types'
-import { APPOINTMENT_REASONS, APPOINTMENT_STATUSES } from '../../types'
+import AppointmentFiles from './AppointmentFiles'
+import type { Appointment, AppointmentFile } from '../../types'
+import { APPOINTMENT_STATUSES } from '../../types'
 import { parseApiError, formatDate } from '../../utils/errorHandler'
 import { getStatusLabel } from '../../utils/statusHelpers'
 import { useToast } from '../../context/ToastContext'
@@ -26,7 +28,7 @@ const schema = z.object({
   status: z.string(),
   appointment_date: z.string().optional().or(z.literal('')),
   appointment_time: z.string().optional().or(z.literal('')),
-  reason: z.string().optional(),
+  treatments: z.array(z.string()).min(1, 'Select at least one treatment'),
   notes: z.string().max(5000).optional().or(z.literal('')),
   total_amount: amountField,
   amount_paid: amountField,
@@ -53,17 +55,20 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
+  const [files, setFiles] = useState<AppointmentFile[]>([])
   const { showToast } = useToast()
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, watch, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
+    defaultValues: { treatments: [] },
   })
 
-  // Live pending calculation from form values.
-  // Falls back to the saved total_amount if the field is left blank so the
-  // "Pending" tile in the modal stays accurate during payment-only edits.
+  // Watch date so the TimeSlotSelect can fetch available slots reactively
+  const watchedDate = watch('appointment_date')
   const watchedTotal = watch('total_amount')
   const watchedPaid = watch('amount_paid')
+
+  // Live pending calculation from form values.
   const livePending = (() => {
     const t = parseFloat(watchedTotal || '0') || (appt?.total_amount ?? 0)
     const p = parseFloat(watchedPaid || '0') || 0
@@ -72,18 +77,14 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
   })()
 
   // Cumulative patient-level totals across ALL their appointments (billable only).
-  // Used to show context when this appointment is a follow-up payment with no total_amount.
-  // If allAppointments wasn't passed in (e.g. opened from AppointmentsPage), we fetch them
-  // automatically once we know the client_id from the loaded appointment.
   const [fetchedPatientAppts, setFetchedPatientAppts] = useState<Appointment[] | null>(null)
 
   useEffect(() => {
-    // Only fetch if the parent didn't supply them and the appointment is loaded with a client_id
     if (allAppointments !== undefined) return
     if (!appt?.client_id) return
     clientApi.getAppointments(appt.client_id)
       .then((r) => { if (r.success && r.data) setFetchedPatientAppts(r.data) })
-      .catch(() => { /* non-critical — summary will just not show */ })
+      .catch(() => { /* non-critical */ })
   }, [appt?.client_id, allAppointments])
 
   const resolvedPatientAppts = allAppointments ?? fetchedPatientAppts ?? []
@@ -100,8 +101,6 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
     return totalCharged > 0 || totalPaid > 0 ? { totalCharged, totalPaid, totalPending } : null
   })()
 
-  // Show the cumulative summary when this specific appointment has no total_amount
-  // (i.e. it's a follow-up installment payment) — so the doctor always sees the full picture.
   const showPatientSummary = patientTotals != null && appt?.total_amount == null
 
   useEffect(() => {
@@ -109,11 +108,22 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
       .then((r) => {
         if (r.success && r.data) {
           setAppt(r.data)
+          setFiles(r.data.files ?? [])
+
+          // Resolve treatments: use the multi-treatment list if present,
+          // otherwise fall back to [reason] from the legacy single field.
+          const initialTreatments =
+            r.data.treatments && r.data.treatments.length > 0
+              ? r.data.treatments
+              : r.data.reason
+              ? [r.data.reason]
+              : []
+
           reset({
             status: r.data.status,
             appointment_date: r.data.appointment_date || '',
             appointment_time: r.data.appointment_time || '',
-            reason: r.data.reason,
+            treatments: initialTreatments,
             notes: r.data.notes || '',
             total_amount: r.data.total_amount != null ? String(r.data.total_amount) : '',
             amount_paid: r.data.amount_paid != null ? String(r.data.amount_paid) : '',
@@ -129,18 +139,19 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
     setSaving(true)
     setFormError(null)
     try {
-      // Preserve the existing total_amount if the field is left blank — don't wipe it.
-      // This lets the doctor record a payment on a follow-up visit without clearing the
-      // treatment cost that was entered on the first appointment.
       const resolvedTotal = values.total_amount
         ? parseFloat(values.total_amount)
         : appt.total_amount ?? null
+
+      // Keep reason in sync with the first treatment for backward compatibility
+      const primaryReason = values.treatments[0] ?? appt.reason
 
       await appointmentApi.update(appt.id, {
         status: values.status as Appointment['status'],
         appointment_date: values.appointment_date || null,
         appointment_time: values.appointment_time || null,
-        reason: values.reason,
+        reason: primaryReason,
+        treatments: values.treatments,
         notes: values.notes || undefined,
         total_amount: resolvedTotal,
         amount_paid: values.amount_paid ? parseFloat(values.amount_paid) : null,
@@ -229,25 +240,55 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
                   ))}
                 </select>
               </div>
-              {/* Reason */}
-              <div>
-                <label className="label text-xs" htmlFor="appt-reason">Reason</label>
-                <select id="appt-reason" className="input text-sm" {...register('reason')}>
-                  {APPOINTMENT_REASONS.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-              </div>
+
               {/* Date */}
               <div>
                 <label className="label text-xs" htmlFor="appt-date">Appointment Date</label>
                 <input id="appt-date" type="date" className="input text-sm" {...register('appointment_date')} />
               </div>
-              {/* Time */}
-              <div>
-                <label className="label text-xs" htmlFor="appt-time">Appointment Time</label>
-                <TimeSlotSelect id="appt-time" className="input text-sm" {...register('appointment_time')} />
-              </div>
+            </div>
+
+            {/* Time — date-aware: only shows available slots for the selected date */}
+            <div>
+              <label className="label text-xs" htmlFor="appt-time">Appointment Time</label>
+              <Controller
+                name="appointment_time"
+                control={control}
+                render={({ field }) => (
+                  <TimeSlotSelect
+                    id="appt-time"
+                    className="input text-sm"
+                    selectedDate={watchedDate && /^\d{4}-\d{2}-\d{2}$/.test(watchedDate) ? watchedDate : undefined}
+                    excludeAppointmentId={appointmentId}
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
+                )}
+              />
+            </div>
+
+            {/* Treatments — multi-select */}
+            <div>
+              <label className="label text-xs" htmlFor="appt-treatments">
+                Treatment(s)
+              </label>
+              <Controller
+                name="treatments"
+                control={control}
+                render={({ field }) => (
+                  <TreatmentSelect
+                    id="appt-treatments"
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+              {errors.treatments && (
+                <p className="text-xs text-red-400 mt-1">{errors.treatments.message}</p>
+              )}
             </div>
 
             {/* Notes */}
@@ -262,8 +303,7 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
               />
             </div>
 
-            {/* Patient-level cumulative summary — shown when this appointment is a follow-up
-                installment (no total_amount on this visit) so the doctor sees the full balance */}
+            {/* Patient-level cumulative summary */}
             {showPatientSummary && patientTotals && (
               <div className="p-3 bg-dark-700/60 rounded-xl border border-primary-500/20 space-y-2">
                 <div className="flex items-center gap-1.5">
@@ -346,8 +386,7 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
                 </div>
               </div>
 
-              {/* Live pending summary — shows cumulative patient totals for installment visits,
-                  or this appointment's own figures when total_amount is set */}
+              {/* Live pending summary */}
               <div className="grid grid-cols-3 gap-2 pt-1">
                 <div className="bg-dark-600 rounded-lg p-2.5 text-center">
                   <div className="flex items-center justify-center gap-1 mb-0.5">
@@ -394,6 +433,14 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
                 </div>
               </div>
             </div>
+
+            {/* Attachments — x-rays, scans, PDFs */}
+            <hr className="border-dark-500" />
+            <AppointmentFiles
+              appointmentId={appointmentId}
+              files={files}
+              onFilesChanged={setFiles}
+            />
 
             {formError && (
               <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2" role="alert">

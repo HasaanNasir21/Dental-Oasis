@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     CLINIC_OPEN_TIME: str = "17:00"
     CLINIC_CLOSE_TIME: str = "22:00"
 
+    # Cloudinary (for appointment file uploads)
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]

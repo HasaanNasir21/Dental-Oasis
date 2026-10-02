@@ -54,4 +54,16 @@ export const appointmentApi = {
     const res = await apiClient.get('/api/admin/calendar', { params: { start_date, end_date } })
     return res.data
   },
+
+  /**
+   * Fetch available time slots for the given date.
+   * Returns HH:MM strings for slots not yet taken by CONTACTED/CONFIRMED appointments.
+   * Pass excludeId when editing an existing appointment so its own slot stays available.
+   */
+  getAvailableSlots: async (date: string, excludeId?: number): Promise<ApiResponse<string[]>> => {
+    const res = await apiClient.get('/api/admin/appointments/available-slots', {
+      params: { date, ...(excludeId !== undefined ? { exclude_id: excludeId } : {}) },
+    })
+    return res.data
+  },
 }

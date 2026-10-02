@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
@@ -71,10 +71,11 @@ function ClientAppointmentForm({
 }) {
   const [serverError, setServerError] = useState<string | null>(null)
   const { showToast } = useToast()
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<AppointmentForm>({
+  const { register, handleSubmit, watch, control, formState: { errors, isSubmitting } } = useForm<AppointmentForm>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: { reason: 'Checkup', status: 'CONFIRMED', notes: '' },
   })
+  const watchedDate = watch('appointment_date')
 
   const onSubmit = async (values: AppointmentForm) => {
     setServerError(null)
@@ -115,7 +116,22 @@ function ClientAppointmentForm({
           </div>
           <div>
             <label className="label" htmlFor="appointment_time">Time</label>
-            <TimeSlotSelect id="appointment_time" className="input" {...register('appointment_time')} />
+            <Controller
+              name="appointment_time"
+              control={control}
+              render={({ field }) => (
+                <TimeSlotSelect
+                  id="appointment_time"
+                  className="input"
+                  selectedDate={watchedDate && /^\d{4}-\d{2}-\d{2}$/.test(watchedDate) ? watchedDate : undefined}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                />
+              )}
+            />
             {errors.appointment_time && <p className="field-error">{errors.appointment_time.message}</p>}
           </div>
         </div>
