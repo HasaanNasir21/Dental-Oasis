@@ -17,25 +17,39 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Store multiple treatments as a JSON-encoded list.
-    # Nullable — existing appointments keep using `reason` alone.
-    op.add_column(
-        "appointments",
-        sa.Column("treatments", sa.Text(), nullable=True),
-    )
+    # Widen the alembic_version tracking column — older installs use VARCHAR(32)
+    # which is too short for revision IDs longer than 32 characters.
+    # This is safe to run even if the column is already wider.
+    op.execute("ALTER TABLE alembic_version MODIFY version_num VARCHAR(64) NOT NULL")
 
-    # Date when amount_paid was last recorded — used for monthly revenue bucketing.
-    # Revenue is attributed to the month this date falls in, not appointment_date.
-    op.add_column(
-        "appointments",
-        sa.Column("last_payment_date", sa.Date(), nullable=True),
-    )
-    op.create_index(
-        "ix_appointments_last_payment_date",
-        "appointments",
-        ["last_payment_date"],
-        unique=False,
-    )
+    # Add columns only if they don't already exist (idempotent — safe to re-run
+    # if a previous deployment partially applied this migration before failing).
+    conn = op.get_bind()
+
+    existing = {
+        row[0]
+        for row in conn.execute(
+            sa.text("SHOW COLUMNS FROM appointments")
+        )
+    }
+
+    if "treatments" not in existing:
+        op.add_column(
+            "appointments",
+            sa.Column("treatments", sa.Text(), nullable=True),
+        )
+
+    if "last_payment_date" not in existing:
+        op.add_column(
+            "appointments",
+            sa.Column("last_payment_date", sa.Date(), nullable=True),
+        )
+        op.create_index(
+            "ix_appointments_last_payment_date",
+            "appointments",
+            ["last_payment_date"],
+            unique=False,
+        )
 
 
 def downgrade() -> None:

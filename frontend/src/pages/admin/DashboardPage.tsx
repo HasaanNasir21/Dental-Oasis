@@ -212,7 +212,6 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedApptId, setSelectedApptId] = useState<number | null>(null)
   const [showNewAppt, setShowNewAppt] = useState(false)
-  const { showToast } = useToast()
 
   const load = () => {
     setLoading(true)

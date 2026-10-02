@@ -4,7 +4,6 @@ import {
   UploadCloud,
   Trash2,
   FileText,
-  Image,
   X,
   AlertCircle,
 } from 'lucide-react'
