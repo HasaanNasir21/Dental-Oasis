@@ -128,7 +128,14 @@ export default function CalendarPage() {
               {mode}
             </button>
           ))}
-          <button type="button" onClick={() => setAnchor(new Date(today.getFullYear(), today.getMonth(), today.getDate()))} className="btn-ghost text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              setAnchor(new Date(today.getFullYear(), today.getMonth(), today.getDate()))
+              setViewMode('day')
+            }}
+            className="btn-ghost text-sm"
+          >
             Today
           </button>
           <button type="button" onClick={() => shift(-1)} className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-dark-600" aria-label="Previous">
@@ -167,7 +174,18 @@ export default function CalendarPage() {
                   </div>
                   <div className="space-y-0.5">
                     {dayAppts.slice(0, 3).map(renderAppointmentButton)}
-                    {dayAppts.length > 3 && <p className="text-xs text-gray-500 pl-1">+{dayAppts.length - 3} more</p>}
+                    {dayAppts.length > 3 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAnchor(new Date(dateStr))
+                          setViewMode('day')
+                        }}
+                        className="text-xs text-primary-400 hover:text-primary-300 pl-1 cursor-pointer transition-colors"
+                      >
+                        +{dayAppts.length - 3} more
+                      </button>
+                    )}
                   </div>
                 </div>
               )
