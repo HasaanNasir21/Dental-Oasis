@@ -120,7 +120,12 @@ export default function CalendarPage() {
             <button
               key={mode}
               type="button"
-              onClick={() => setViewMode(mode)}
+              onClick={() => {
+                if (mode === 'day') {
+                  setAnchor(new Date(today.getFullYear(), today.getMonth(), today.getDate()))
+                }
+                setViewMode(mode)
+              }}
               className={`px-3 py-1.5 rounded-lg text-sm capitalize ${
                 viewMode === mode ? 'bg-primary-600 text-white' : 'btn-ghost'
               }`}
@@ -128,16 +133,6 @@ export default function CalendarPage() {
               {mode}
             </button>
           ))}
-          <button
-            type="button"
-            onClick={() => {
-              setAnchor(new Date(today.getFullYear(), today.getMonth(), today.getDate()))
-              setViewMode('day')
-            }}
-            className="btn-ghost text-sm"
-          >
-            Today
-          </button>
           <button type="button" onClick={() => shift(-1)} className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-dark-600" aria-label="Previous">
             <ChevronLeft size={18} />
           </button>
