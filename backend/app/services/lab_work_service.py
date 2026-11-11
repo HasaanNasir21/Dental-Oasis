@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 from datetime import date
+from collections import defaultdict
 
 from app.models.lab_work import LabWork
 from app.schemas.lab_work import LabWorkCreate, LabWorkUpdate
@@ -137,3 +138,58 @@ def list_lab_work(
         .all()
     )
     return [_to_list(r) for r in records], total
+
+
+def get_teeth_summary(
+    db: Session,
+    laboratory_id: Optional[int] = None,
+    from_date: Optional[date] = None,
+    to_date: Optional[date] = None,
+    status: Optional[str] = None,
+) -> dict:
+    """
+    Aggregate total teeth count and record count per work type.
+    Returns all work types that have at least one matching record.
+    """
+    query = db.query(LabWork)
+
+    if laboratory_id is not None:
+        query = query.filter(LabWork.laboratory_id == laboratory_id)
+
+    if from_date:
+        query = query.filter(LabWork.work_date >= from_date)
+
+    if to_date:
+        query = query.filter(LabWork.work_date <= to_date)
+
+    if status:
+        query = query.filter(LabWork.status == status)
+
+    records = query.all()
+
+    # Aggregate in Python because teeth are stored as a JSON text column
+    tooth_counts: Dict[str, int] = defaultdict(int)
+    record_counts: Dict[str, int] = defaultdict(int)
+
+    for record in records:
+        wt = record.work_type.value if hasattr(record.work_type, "value") else str(record.work_type)
+        tooth_counts[wt] += len(record.get_teeth())
+        record_counts[wt] += 1
+
+    summary = [
+        {
+            "work_type": wt,
+            "tooth_count": tooth_counts[wt],
+            "record_count": record_counts[wt],
+        }
+        for wt in sorted(tooth_counts.keys())
+    ]
+
+    total_teeth = sum(tooth_counts.values())
+    total_records = sum(record_counts.values())
+
+    return {
+        "summary": summary,
+        "total_teeth": total_teeth,
+        "total_records": total_records,
+    }

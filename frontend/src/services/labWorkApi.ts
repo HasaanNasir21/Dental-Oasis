@@ -6,6 +6,7 @@ import type {
   LabWorkListItem,
   LabWorkCreate,
   LabWorkUpdate,
+  LabWorkTeethSummary,
 } from '../types'
 
 export const labWorkApi = {
@@ -20,6 +21,16 @@ export const labWorkApi = {
     laboratory_id?: number
   }): Promise<PaginatedResponse<LabWorkListItem>> => {
     const res = await apiClient.get('/api/admin/lab-work', { params })
+    return res.data
+  },
+
+  teethSummary: async (params: {
+    laboratory_id?: number
+    from_date?: string
+    to_date?: string
+    status?: string
+  }): Promise<ApiResponse<LabWorkTeethSummary>> => {
+    const res = await apiClient.get('/api/admin/lab-work/teeth-summary', { params })
     return res.data
   },
 

@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   Search, Plus, Edit2, Trash2, X, Save, AlertCircle, FlaskConical,
-  Filter, ChevronDown, Building2, Phone, Mail, MapPin, ToggleLeft, ToggleRight,
+  Filter, ChevronDown, ChevronLeft, ChevronRight,
+  Building2, Phone, Mail, MapPin, ToggleLeft, ToggleRight,
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,6 +12,7 @@ import { laboratoryApi } from '../../services/laboratoryApi'
 import type {
   LabWork, LabWorkListItem, PaginationMeta, LabWorkType, LabWorkStatus,
   Laboratory, LaboratoryListItem, LaboratoryOption,
+  WorkTypeSummaryItem, LabWorkTeethSummary,
 } from '../../types'
 import { LAB_WORK_TYPES, LAB_WORK_STATUSES } from '../../types'
 import TeethSelector from '../../components/admin/TeethSelector'
@@ -679,6 +681,116 @@ function FilterBar({
 }
 
 // ─────────────────────────────────────────────────────────────
+//  TREATMENT SUMMARY CARDS
+// ─────────────────────────────────────────────────────────────
+const workTypeIcons: Record<string, string> = {
+  'PFM': '🦷',
+  '3D PFM': '🖨️',
+  'Zirconia': '💎',
+  'E-Max': '✨',
+  'Dentures': '🫦',
+  'Aligner': '📐',
+  'Inlay': '🔩',
+  'CC Plate': '🪛',
+  'Other': '📋',
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+function TreatmentSummaryCards({
+  summary,
+  year,
+  month,
+  onPrevMonth,
+  onNextMonth,
+  isCurrentMonth,
+}: {
+  summary: LabWorkTeethSummary | null
+  year: number
+  month: number
+  onPrevMonth: () => void
+  onNextMonth: () => void
+  isCurrentMonth: boolean
+}) {
+  return (
+    <div className="mb-6">
+      {/* Header with month navigation */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Treatment Summary</h2>
+          <span className="text-xs text-gray-500">— total teeth per work type</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onPrevMonth}
+            className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-dark-500 transition-colors"
+            aria-label="Previous month"
+          >
+            <ChevronLeft size={15} />
+          </button>
+          <span className="text-sm font-medium text-white min-w-[130px] text-center">
+            {MONTH_NAMES[month - 1]} {year}
+            {isCurrentMonth && (
+              <span className="ml-1.5 text-xs font-normal text-primary-400">(current)</span>
+            )}
+          </span>
+          <button
+            onClick={onNextMonth}
+            disabled={isCurrentMonth}
+            className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-dark-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Next month"
+          >
+            <ChevronRight size={15} />
+          </button>
+        </div>
+      </div>
+
+      {/* Cards */}
+      {!summary || summary.summary.length === 0 ? (
+        <div className="card py-6 text-center">
+          <p className="text-sm text-gray-500">No lab work recorded for {MONTH_NAMES[month - 1]} {year}.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {summary.summary.map(({ work_type, tooth_count, record_count }: WorkTypeSummaryItem) => (
+            <div key={work_type} className="card flex items-center gap-3 py-3">
+              <div className={`p-2 rounded-lg text-base flex items-center justify-center w-9 h-9 flex-shrink-0 ${workTypeColors[work_type] ?? workTypeColors['Other']}`}>
+                {workTypeIcons[work_type] ?? '🦷'}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-gray-400 truncate">{work_type}</p>
+                <p className="text-lg font-bold text-white leading-tight">
+                  {tooth_count}
+                  <span className="text-xs font-normal text-gray-500 ml-1">teeth</span>
+                </p>
+                <p className="text-xs text-gray-500">{record_count} {record_count === 1 ? 'patient' : 'patients'}</p>
+              </div>
+            </div>
+          ))}
+          {/* Totals card */}
+          <div className="card flex items-center gap-3 py-3 border border-primary-500/20">
+            <div className="p-2 rounded-lg bg-primary-500/20 flex items-center justify-center w-9 h-9 flex-shrink-0">
+              <FlaskConical size={16} className="text-primary-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-gray-400">Total</p>
+              <p className="text-lg font-bold text-white leading-tight">
+                {summary.total_teeth}
+                <span className="text-xs font-normal text-gray-500 ml-1">teeth</span>
+              </p>
+              <p className="text-xs text-gray-500">{summary.total_records} {summary.total_records === 1 ? 'patient' : 'patients'}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
 //  STATUS SUMMARY CARDS
 // ─────────────────────────────────────────────────────────────
 function StatusSummaryCards({ records }: { records: LabWorkListItem[] }) {
@@ -737,6 +849,13 @@ function LabWorkTab({
   const [laboratoryId, setLaboratoryId] = useState('')
   const [page, setPage] = useState(1)
 
+  // Treatment summary
+  const [teethSummary, setTeethSummary] = useState<LabWorkTeethSummary | null>(null)
+  // Month navigation for the treatment summary (independent of list filters)
+  const today = new Date()
+  const [summaryYear, setSummaryYear] = useState(today.getFullYear())
+  const [summaryMonth, setSummaryMonth] = useState(today.getMonth() + 1) // 1-12
+
   // Modals
   const [formRecord, setFormRecord] = useState<LabWork | null | undefined>(undefined)
   const [deleteId, setDeleteId] = useState<number | null>(null)
@@ -759,20 +878,39 @@ function LabWorkTab({
   const load = useCallback(() => {
     setLoading(true)
     setError(null)
-    labWorkApi.list({
+    // Always scope to the selected calendar month unless the user manually set a date range
+    const daysInMonth = new Date(summaryYear, summaryMonth, 0).getDate()
+    const monthFrom = `${summaryYear}-${String(summaryMonth).padStart(2, '0')}-01`
+    const monthTo = `${summaryYear}-${String(summaryMonth).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`
+
+    const listParams = {
       page,
       page_size: 20,
       search: search || undefined,
       work_type: workType || undefined,
       status: status || undefined,
-      from_date: fromDate || undefined,
-      to_date: toDate || undefined,
+      // Use the user's manual date range if set, otherwise default to the selected month
+      from_date: fromDate || monthFrom,
+      to_date: toDate || monthTo,
       laboratory_id: laboratoryId ? Number(laboratoryId) : undefined,
-    })
-      .then((r) => { setRecords(r.data); setMeta(r.meta) })
+    }
+    const summaryParams = {
+      laboratory_id: laboratoryId ? Number(laboratoryId) : undefined,
+      from_date: monthFrom,
+      to_date: monthTo,
+    }
+    Promise.all([
+      labWorkApi.list(listParams),
+      labWorkApi.teethSummary(summaryParams),
+    ])
+      .then(([listRes, summaryRes]) => {
+        setRecords(listRes.data)
+        setMeta(listRes.meta)
+        setTeethSummary(summaryRes.data ?? null)
+      })
       .catch((e) => setError(parseApiError(e)))
       .finally(() => setLoading(false))
-  }, [page, search, workType, status, fromDate, toDate, laboratoryId])
+  }, [page, search, workType, status, fromDate, toDate, laboratoryId, summaryYear, summaryMonth])
 
   useEffect(() => { load() }, [load])
 
@@ -780,6 +918,23 @@ function LabWorkTab({
     clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(() => { setSearch(val); setPage(1) }, 400)
   }
+
+  const goToPrevMonth = () => {
+    setPage(1)
+    if (summaryMonth === 1) { setSummaryMonth(12); setSummaryYear(y => y - 1) }
+    else setSummaryMonth(m => m - 1)
+  }
+
+  const goToNextMonth = () => {
+    const now = new Date()
+    // Don't navigate past the current month
+    if (summaryYear === now.getFullYear() && summaryMonth === now.getMonth() + 1) return
+    setPage(1)
+    if (summaryMonth === 12) { setSummaryMonth(1); setSummaryYear(y => y + 1) }
+    else setSummaryMonth(m => m + 1)
+  }
+
+  const isCurrentMonth = summaryYear === today.getFullYear() && summaryMonth === today.getMonth() + 1
 
   const clearFilters = () => {
     setSearch('')
@@ -817,6 +972,18 @@ function LabWorkTab({
 
   return (
     <div>
+      {/* Treatment summary (teeth per work type) */}
+      {!loading && !error && (
+        <TreatmentSummaryCards
+          summary={teethSummary}
+          year={summaryYear}
+          month={summaryMonth}
+          onPrevMonth={goToPrevMonth}
+          onNextMonth={goToNextMonth}
+          isCurrentMonth={isCurrentMonth}
+        />
+      )}
+
       {/* Status summary */}
       {!loading && !error && records.length > 0 && (
         <StatusSummaryCards records={records} />

@@ -598,3 +598,17 @@ export interface LabWorkUpdate {
   work_date?: string
   notes?: string
 }
+
+export interface WorkTypeSummaryItem {
+  work_type: LabWorkType
+  tooth_count: number
+  record_count: number
+}
+
+export interface LabWorkTeethSummary {
+  summary: WorkTypeSummaryItem[]
+  total_teeth: number
+  total_records: number
+  from_date: string
+  to_date: string
+}

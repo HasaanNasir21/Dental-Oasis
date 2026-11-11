@@ -36,6 +36,43 @@ def list_lab_work(
     )
 
 
+@router.get("/teeth-summary", response_model=SuccessResponse)
+def get_teeth_summary(
+    laboratory_id: Optional[int] = Query(default=None),
+    from_date: Optional[date] = Query(default=None),
+    to_date: Optional[date] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+    db: Session = Depends(get_db),
+    _: str = Depends(get_current_admin),
+):
+    """
+    Return total teeth count and record count per work type.
+    Defaults to the current calendar month when no date range is supplied.
+    Optionally filter by laboratory or status.
+    """
+    from datetime import date as _date
+    import calendar
+
+    # Default to current month if no dates provided
+    if from_date is None and to_date is None:
+        today = _date.today()
+        from_date = today.replace(day=1)
+        last_day = calendar.monthrange(today.year, today.month)[1]
+        to_date = today.replace(day=last_day)
+
+    summary = lab_work_service.get_teeth_summary(
+        db,
+        laboratory_id=laboratory_id,
+        from_date=from_date,
+        to_date=to_date,
+        status=status,
+    )
+    # Include the resolved date range in the response so the frontend knows what month was used
+    summary["from_date"] = str(from_date)
+    summary["to_date"] = str(to_date)
+    return SuccessResponse(success=True, message="OK", data=summary)
+
+
 @router.post("", response_model=SuccessResponse, status_code=201)
 def create_lab_work(
     data: LabWorkCreate,

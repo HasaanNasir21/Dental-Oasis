@@ -146,6 +146,18 @@ class LabWorkUpdate(BaseModel):
         return v
 
 
+class WorkTypeSummaryItem(BaseModel):
+    work_type: str
+    tooth_count: int
+    record_count: int
+
+
+class LabWorkTeethSummary(BaseModel):
+    summary: List[WorkTypeSummaryItem]
+    total_teeth: int
+    total_records: int
+
+
 class LabWorkOut(BaseModel):
     id: int
     patient_name: str
