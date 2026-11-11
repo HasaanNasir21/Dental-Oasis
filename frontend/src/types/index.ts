@@ -490,6 +490,56 @@ export interface EmployeeSummary {
   monthly_totals: MonthlyTotal[]
 }
 
+// ---- Laboratory ----
+
+export interface Laboratory {
+  id: number
+  name: string
+  phone: string | null
+  email: string | null
+  address: string | null
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface LaboratoryListItem {
+  id: number
+  name: string
+  phone: string | null
+  email: string | null
+  address: string | null
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface LaboratoryOption {
+  id: number
+  name: string
+  is_active: boolean
+}
+
+export interface LaboratoryCreate {
+  name: string
+  phone?: string
+  email?: string
+  address?: string
+  notes?: string
+  is_active?: boolean
+}
+
+export interface LaboratoryUpdate {
+  name?: string
+  phone?: string
+  email?: string
+  address?: string
+  notes?: string
+  is_active?: boolean
+}
+
 // ---- Lab Work ----
 
 export type LabWorkType = 'PFM' | '3D PFM' | 'Zirconia' | 'E-Max' | 'Dentures' | 'Aligner' | 'Inlay' | 'CC Plate' | 'Other'
@@ -504,6 +554,8 @@ export interface LabWork {
   id: number
   patient_name: string
   client_id: number | null
+  laboratory_id: number | null
+  laboratory_name: string | null
   work_type: LabWorkType
   teeth: string[]
   status: LabWorkStatus
@@ -516,6 +568,8 @@ export interface LabWork {
 export interface LabWorkListItem {
   id: number
   patient_name: string
+  laboratory_id: number | null
+  laboratory_name: string | null
   work_type: LabWorkType
   teeth: string[]
   status: LabWorkStatus
@@ -526,6 +580,7 @@ export interface LabWorkListItem {
 export interface LabWorkCreate {
   patient_name: string
   client_id?: number | null
+  laboratory_id?: number | null
   work_type: LabWorkType
   teeth: string[]
   status: LabWorkStatus
@@ -536,6 +591,7 @@ export interface LabWorkCreate {
 export interface LabWorkUpdate {
   patient_name?: string
   client_id?: number | null
+  laboratory_id?: number | null
   work_type?: LabWorkType
   teeth?: string[]
   status?: LabWorkStatus

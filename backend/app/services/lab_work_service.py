@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from typing import Optional, List, Tuple
 from datetime import date
@@ -16,6 +16,8 @@ def _to_out(record: LabWork) -> dict:
         "id": record.id,
         "patient_name": record.patient_name,
         "client_id": record.client_id,
+        "laboratory_id": record.laboratory_id,
+        "laboratory_name": record.laboratory.name if record.laboratory else None,
         "work_type": record.work_type.value if hasattr(record.work_type, "value") else str(record.work_type),
         "teeth": record.get_teeth(),
         "status": record.status.value if hasattr(record.status, "value") else str(record.status),
@@ -30,6 +32,8 @@ def _to_list(record: LabWork) -> dict:
     return {
         "id": record.id,
         "patient_name": record.patient_name,
+        "laboratory_id": record.laboratory_id,
+        "laboratory_name": record.laboratory.name if record.laboratory else None,
         "work_type": record.work_type.value if hasattr(record.work_type, "value") else str(record.work_type),
         "teeth": record.get_teeth(),
         "status": record.status.value if hasattr(record.status, "value") else str(record.status),
@@ -42,6 +46,7 @@ def create_lab_work(db: Session, data: LabWorkCreate) -> LabWork:
     record = LabWork(
         patient_name=data.patient_name,
         client_id=data.client_id,
+        laboratory_id=data.laboratory_id,
         work_type=data.work_type,
         status=data.status,
         work_date=data.work_date,
@@ -56,7 +61,12 @@ def create_lab_work(db: Session, data: LabWorkCreate) -> LabWork:
 
 
 def get_lab_work_by_id(db: Session, record_id: int) -> LabWork:
-    record = db.query(LabWork).filter(LabWork.id == record_id).first()
+    record = (
+        db.query(LabWork)
+        .options(joinedload(LabWork.laboratory))
+        .filter(LabWork.id == record_id)
+        .first()
+    )
     if not record:
         raise NotFoundError("Laboratory work record not found.")
     return record
@@ -96,8 +106,9 @@ def list_lab_work(
     status: Optional[str] = None,
     from_date: Optional[date] = None,
     to_date: Optional[date] = None,
+    laboratory_id: Optional[int] = None,
 ) -> Tuple[List[dict], int]:
-    query = db.query(LabWork)
+    query = db.query(LabWork).options(joinedload(LabWork.laboratory))
 
     if search:
         like = f"%{search}%"
@@ -114,6 +125,9 @@ def list_lab_work(
 
     if to_date:
         query = query.filter(LabWork.work_date <= to_date)
+
+    if laboratory_id is not None:
+        query = query.filter(LabWork.laboratory_id == laboratory_id)
 
     total = query.count()
     records = (

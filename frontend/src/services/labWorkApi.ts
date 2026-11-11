@@ -17,6 +17,7 @@ export const labWorkApi = {
     status?: string
     from_date?: string
     to_date?: string
+    laboratory_id?: number
   }): Promise<PaginatedResponse<LabWorkListItem>> => {
     const res = await apiClient.get('/api/admin/lab-work', { params })
     return res.data

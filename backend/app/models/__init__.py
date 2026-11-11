@@ -7,6 +7,7 @@ from app.models.clinic_setting import ClinicSetting
 from app.models.monthly_payment_summary import MonthlyPaymentSummary
 from app.models.employee import Employee
 from app.models.employee_payment import EmployeePayment
+from app.models.laboratory import Laboratory
 from app.models.lab_work import LabWork, LabWorkType, LabWorkStatus
 
 __all__ = [
@@ -20,6 +21,7 @@ __all__ = [
     "MonthlyPaymentSummary",
     "Employee",
     "EmployeePayment",
+    "Laboratory",
     "LabWork",
     "LabWorkType",
     "LabWorkStatus",

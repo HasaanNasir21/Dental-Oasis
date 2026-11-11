@@ -48,6 +48,12 @@ class LabWork(Base):
         default=LabWorkStatus.PENDING,
         index=True,
     )
+    laboratory_id = Column(
+        Integer,
+        ForeignKey("laboratories.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     work_date = Column(Date, nullable=False, index=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -55,6 +61,8 @@ class LabWork(Base):
 
     # Optional link to a patient record
     client = relationship("Client")
+    # Optional link to a laboratory
+    laboratory = relationship("Laboratory", back_populates="lab_works")
 
     def get_teeth(self) -> list:
         """Return selected teeth as a list of FDI number strings."""

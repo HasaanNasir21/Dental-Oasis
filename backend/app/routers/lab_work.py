@@ -22,11 +22,12 @@ def list_lab_work(
     status: Optional[str] = Query(default=None),
     from_date: Optional[date] = Query(default=None),
     to_date: Optional[date] = Query(default=None),
+    laboratory_id: Optional[int] = Query(default=None),
     db: Session = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
     records, total = lab_work_service.list_lab_work(
-        db, page, page_size, search, work_type, status, from_date, to_date
+        db, page, page_size, search, work_type, status, from_date, to_date, laboratory_id
     )
     total_pages = math.ceil(total / page_size) if total > 0 else 1
     return PaginatedResponse(

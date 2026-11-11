@@ -20,6 +20,7 @@ from app.routers.monthly_payments import router as monthly_payments_router
 from app.routers.employees import router as employees_router
 from app.routers.employee_payments import router as employee_payments_router
 from app.routers.lab_work import router as lab_work_router
+from app.routers.laboratory import router as laboratory_router
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -77,6 +78,7 @@ app.include_router(monthly_payments_router)
 app.include_router(employees_router)
 app.include_router(employee_payments_router)
 app.include_router(lab_work_router)
+app.include_router(laboratory_router)
 
 
 @app.exception_handler(StarletteHTTPException)

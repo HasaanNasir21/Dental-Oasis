@@ -6,6 +6,7 @@ from datetime import date, datetime
 class LabWorkBase(BaseModel):
     patient_name: str
     client_id: Optional[int] = None
+    laboratory_id: Optional[int] = None
     work_type: str = "PFM"
     teeth: List[str] = []
     status: str = "Pending"
@@ -81,6 +82,7 @@ class LabWorkCreate(LabWorkBase):
 class LabWorkUpdate(BaseModel):
     patient_name: Optional[str] = None
     client_id: Optional[int] = None
+    laboratory_id: Optional[int] = None
     work_type: Optional[str] = None
     teeth: Optional[List[str]] = None
     status: Optional[str] = None
@@ -148,6 +150,8 @@ class LabWorkOut(BaseModel):
     id: int
     patient_name: str
     client_id: Optional[int] = None
+    laboratory_id: Optional[int] = None
+    laboratory_name: Optional[str] = None
     work_type: str
     teeth: List[str] = []
     status: str
@@ -162,6 +166,8 @@ class LabWorkOut(BaseModel):
 class LabWorkList(BaseModel):
     id: int
     patient_name: str
+    laboratory_id: Optional[int] = None
+    laboratory_name: Optional[str] = None
     work_type: str
     teeth: List[str] = []
     status: str
