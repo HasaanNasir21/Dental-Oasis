@@ -11,6 +11,16 @@ from app.schemas.monthly_summary import (
     MonthlyRolloverResult,
     MonthlyHistoryResponse,
 )
+from app.schemas.employee import EmployeeCreate, EmployeeUpdate, EmployeeOut, EmployeeList
+from app.schemas.employee_payment import (
+    EmployeePaymentCreate,
+    EmployeePaymentUpdate,
+    EmployeePaymentOut,
+    EmployeePaymentList,
+    PaymentSummary,
+    EmployeeSummary,
+)
+from app.schemas.lab_work import LabWorkCreate, LabWorkUpdate, LabWorkOut, LabWorkList
 
 __all__ = [
     "PaginatedResponse", "SuccessResponse",
@@ -21,4 +31,8 @@ __all__ = [
     "TestimonialCreate", "TestimonialUpdate", "TestimonialOut",
     "MonthlyPaymentSummaryOut", "ClinicMonthlyTotals", "CurrentMonthPayments",
     "MonthlyRolloverResult", "MonthlyHistoryResponse",
+    "EmployeeCreate", "EmployeeUpdate", "EmployeeOut", "EmployeeList",
+    "EmployeePaymentCreate", "EmployeePaymentUpdate", "EmployeePaymentOut",
+    "EmployeePaymentList", "PaymentSummary", "EmployeeSummary",
+    "LabWorkCreate", "LabWorkUpdate", "LabWorkOut", "LabWorkList",
 ]

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, ClipboardList, Users, MessageSquare, Settings,
-  LogOut, Menu,
+  LogOut, Menu, Wallet, FlaskConical,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -13,6 +13,8 @@ const navItems = [
   { to: '/admin/appointments', label: 'Appointments', icon: ClipboardList },
   { to: '/admin/calendar', label: 'Calendar', icon: Calendar },
   { to: '/admin/clients', label: 'Patients', icon: Users },
+  { to: '/admin/employee-payments', label: 'Employee Payments', icon: Wallet },
+  { to: '/admin/lab-work', label: 'Lab Work', icon: FlaskConical },
   { to: '/admin/testimonials', label: 'Testimonials', icon: MessageSquare },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]

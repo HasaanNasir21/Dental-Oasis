@@ -13,7 +13,10 @@ from app.config import settings
 from app.database import Base
 
 # Import all models so that Alembic can detect them for autogenerate
-from app.models import Client, Appointment, Service, Testimonial, ClinicSetting  # noqa: F401
+from app.models import (
+    Client, Appointment, Service, Testimonial, ClinicSetting,  # noqa: F401
+    Employee, EmployeePayment, LabWork,  # noqa: F401
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

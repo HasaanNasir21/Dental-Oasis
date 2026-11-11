@@ -17,6 +17,9 @@ from app.routers import (
     services, testimonials, settings as settings_router,
 )
 from app.routers.monthly_payments import router as monthly_payments_router
+from app.routers.employees import router as employees_router
+from app.routers.employee_payments import router as employee_payments_router
+from app.routers.lab_work import router as lab_work_router
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -71,6 +74,9 @@ app.include_router(services.router)
 app.include_router(testimonials.router)
 app.include_router(settings_router.router)
 app.include_router(monthly_payments_router)
+app.include_router(employees_router)
+app.include_router(employee_payments_router)
+app.include_router(lab_work_router)
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -93,9 +99,20 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         else:
             messages.append(msg)
     message = "; ".join(messages) if messages else "Validation error."
+
+    # Sanitize error list — the `ctx` dict can contain non-serializable Python
+    # exception objects (e.g. ValueError). Strip ctx entirely before returning.
+    safe_errors = []
+    for error in errors:
+        safe_errors.append({
+            "loc": list(error.get("loc", [])),
+            "msg": error.get("msg", ""),
+            "type": error.get("type", ""),
+        })
+
     return JSONResponse(
         status_code=422,
-        content={"success": False, "message": message, "data": None, "errors": errors},
+        content={"success": False, "message": message, "data": None, "errors": safe_errors},
     )
 
 
@@ -180,3 +197,5 @@ async def shutdown_event():
     if scheduler and scheduler.running:
         scheduler.shutdown(wait=False)
         logger.info("APScheduler shut down.")
+
+# ---- New feature routes: Employee Payments & Lab Work (loaded) ----

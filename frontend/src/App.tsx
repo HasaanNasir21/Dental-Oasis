@@ -27,6 +27,8 @@ import ClientsPage from './pages/admin/ClientsPage'
 import ClientDetailPage from './pages/admin/ClientDetailPage'
 import TestimonialsPage from './pages/admin/TestimonialsPage'
 import SettingsPage from './pages/admin/SettingsPage'
+import EmployeePaymentsPage from './pages/admin/EmployeePaymentsPage'
+import LabWorkPage from './pages/admin/LabWorkPage'
 
 export default function App() {
   return (
@@ -65,6 +67,8 @@ export default function App() {
                   <Route path="clients" element={<ClientsPage />} />
                   <Route path="clients/:id" element={<ClientDetailPage />} />
                   <Route path="testimonials" element={<TestimonialsPage />} />
+                  <Route path="employee-payments" element={<EmployeePaymentsPage />} />
+                  <Route path="lab-work" element={<LabWorkPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
 

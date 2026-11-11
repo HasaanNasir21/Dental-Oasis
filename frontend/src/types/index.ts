@@ -361,3 +361,184 @@ export interface DashboardStats {
 export interface AdminInfo {
   username: string
 }
+// ---- Employee ----
+
+export interface Employee {
+  id: number
+  name: string
+  contact_number: string | null
+  role: string | null
+  notes: string | null
+  is_active: boolean
+  total_paid: number
+  payment_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeeListItem {
+  id: number
+  name: string
+  contact_number: string | null
+  role: string | null
+  is_active: boolean
+  total_paid: number
+  payment_count: number
+  created_at: string
+}
+
+export interface EmployeeOption {
+  id: number
+  name: string
+  role: string | null
+}
+
+export interface EmployeeCreate {
+  name: string
+  contact_number?: string
+  role?: string
+  notes?: string
+  is_active?: boolean
+}
+
+export interface EmployeeUpdate {
+  name?: string
+  contact_number?: string
+  role?: string
+  notes?: string
+  is_active?: boolean
+}
+
+// ---- Employee Payment ----
+
+export interface EmployeePayment {
+  id: number
+  employee_id: number
+  employee_name: string
+  amount: number
+  payment_date: string
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeePaymentListItem {
+  id: number
+  employee_id: number
+  employee_name: string
+  amount: number
+  payment_date: string
+  notes: string | null
+  created_at: string
+}
+
+export interface EmployeePaymentCreate {
+  employee_id: number
+  amount: number
+  payment_date: string
+  notes?: string
+}
+
+export interface EmployeePaymentUpdate {
+  employee_id?: number
+  amount?: number
+  payment_date?: string
+  notes?: string
+}
+
+export interface DailyTotal {
+  date: string
+  total: number
+  count: number
+}
+
+export interface WeeklyTotal {
+  week_start: string
+  total: number
+  count: number
+}
+
+export interface MonthlyTotal {
+  year: number
+  month: number
+  total: number
+  count: number
+}
+
+export interface EmployeeTotal {
+  employee_id: number
+  employee_name: string
+  total: number
+  count: number
+}
+
+export interface PaymentSummary {
+  total_amount: number
+  total_count: number
+  employee_count: number
+  daily_totals: DailyTotal[]
+  weekly_totals: WeeklyTotal[]
+  monthly_totals: MonthlyTotal[]
+  employee_totals: EmployeeTotal[]
+}
+
+export interface EmployeeSummary {
+  employee_id: number
+  employee_name: string
+  total_paid: number
+  payment_count: number
+  monthly_totals: MonthlyTotal[]
+}
+
+// ---- Lab Work ----
+
+export type LabWorkType = 'PFM' | '3D PFM' | 'Zirconia' | 'E-Max' | 'Dentures' | 'Aligner' | 'Inlay' | 'CC Plate' | 'Other'
+
+export const LAB_WORK_TYPES: LabWorkType[] = ['PFM', '3D PFM', 'Zirconia', 'E-Max', 'Dentures', 'Aligner', 'Inlay', 'CC Plate', 'Other']
+
+export type LabWorkStatus = 'Pending' | 'In Progress' | 'Completed'
+
+export const LAB_WORK_STATUSES: LabWorkStatus[] = ['Pending', 'In Progress', 'Completed']
+
+export interface LabWork {
+  id: number
+  patient_name: string
+  client_id: number | null
+  work_type: LabWorkType
+  teeth: string[]
+  status: LabWorkStatus
+  work_date: string
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LabWorkListItem {
+  id: number
+  patient_name: string
+  work_type: LabWorkType
+  teeth: string[]
+  status: LabWorkStatus
+  work_date: string
+  created_at: string
+}
+
+export interface LabWorkCreate {
+  patient_name: string
+  client_id?: number | null
+  work_type: LabWorkType
+  teeth: string[]
+  status: LabWorkStatus
+  work_date: string
+  notes?: string
+}
+
+export interface LabWorkUpdate {
+  patient_name?: string
+  client_id?: number | null
+  work_type?: LabWorkType
+  teeth?: string[]
+  status?: LabWorkStatus
+  work_date?: string
+  notes?: string
+}
