@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Block admin area from search engines
+Disallow: /admin/
+
+Sitemap: https://dental-oasis-production.up.railway.app/sitemap.xml
