@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 
+export const BASE_URL = 'https://dental-oasis-production.up.railway.app'
+
 interface SEOOptions {
   title: string
   description: string

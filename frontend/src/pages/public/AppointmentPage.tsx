@@ -8,7 +8,7 @@ import { appointmentApi } from '../../services/appointmentApi'
 import { parseApiError } from '../../utils/errorHandler'
 import { APPOINTMENT_REASONS } from '../../types'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
-import { useSEO } from '../../hooks/useSEO'
+import { useSEO, BASE_URL } from '../../hooks/useSEO'
 
 const schema = z
   .object({
@@ -42,7 +42,7 @@ export default function AppointmentPage() {
     title: 'Book a Dental Appointment in Lahore | Dental Oasis',
     description:
       'Book a dental appointment at Dental Oasis, Johar Town, Lahore. Fill in the form and our team will confirm your date and time. Free initial checkup available.',
-    canonical: 'https://dentaloasis.pk/appointment',
+    canonical: `${BASE_URL}/appointment`,
   })
 
   const {

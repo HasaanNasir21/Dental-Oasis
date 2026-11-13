@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom'
 import { CheckCircle, MapPin, Clock, ChevronRight, Heart, Shield, Zap } from 'lucide-react'
-import { useSEO } from '../../hooks/useSEO'
+import { useSEO, BASE_URL } from '../../hooks/useSEO'
 
 export default function AboutPage() {
   useSEO({
     title: 'About Dental Oasis | Dental Clinic in Johar Town, Lahore',
     description:
       'Learn about Dental Oasis — a dental clinic at 270 Block E2, Johar Town, Lahore. Free initial checkup, evening hours Mon–Sat 5–9 PM, and a full range of dental treatments.',
-    canonical: 'https://dentaloasis.pk/about',
+    canonical: `${BASE_URL}/about`,
   })
 
   return (

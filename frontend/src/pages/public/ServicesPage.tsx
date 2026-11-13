@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react'
 import { serviceApi } from '../../services/serviceApi'
 import type { ServiceListItem } from '../../types'
 import { PageLoader } from '../../components/ui/LoadingSpinner'
-import { useSEO } from '../../hooks/useSEO'
+import { useSEO, BASE_URL } from '../../hooks/useSEO'
 
 // Static service data as fallback
 const STATIC_SERVICES = [
@@ -32,7 +32,7 @@ export default function ServicesPage() {
     title: 'Dental Treatments & Services in Lahore | Dental Oasis',
     description:
       'Explore the full range of dental treatments at Dental Oasis, Johar Town, Lahore — checkups, implants, braces, aligners, root canal, crowns, veneers, fillings & more.',
-    canonical: 'https://dentaloasis.pk/services',
+    canonical: `${BASE_URL}/services`,
   })
 
   useEffect(() => {

@@ -7,7 +7,7 @@ import {
 import { serviceApi } from '../../services/serviceApi'
 import { testimonialApi } from '../../services/testimonialApi'
 import type { ServiceListItem, Testimonial } from '../../types'
-import { useSEO } from '../../hooks/useSEO'
+import { useSEO, BASE_URL } from '../../hooks/useSEO'
 
 const whyChooseUs = [
   { icon: Heart, title: 'Patient-Focused Care', desc: 'We prioritize your comfort and well-being throughout every visit, ensuring a positive experience from start to finish.' },
@@ -48,7 +48,7 @@ export default function HomePage() {
     title: 'Dental Oasis Lahore | Best Dental Clinic in Johar Town',
     description:
       'Dental Oasis is a patient-focused dental clinic in Johar Town, Lahore. Free initial checkup, implants, braces, aligners, root canal, crowns, veneers & more. Book today.',
-    canonical: 'https://dentaloasis.pk/',
+    canonical: `${BASE_URL}/`,
   })
 
   useEffect(() => {
