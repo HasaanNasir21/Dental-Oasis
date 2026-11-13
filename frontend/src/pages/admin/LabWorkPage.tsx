@@ -800,15 +800,15 @@ function StatusSummaryCards({ records }: { records: LabWorkListItem[] }) {
   })
 
   const cards = [
-    { label: 'Pending', value: counts['Pending'], color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { label: 'In Progress', value: counts['In Progress'], color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { label: 'Completed', value: counts['Completed'], color: 'text-teal-400', bg: 'bg-teal-500/10' },
-    { label: 'Total', value: records.length, color: 'text-primary-400', bg: 'bg-primary-500/10' },
+    { label: 'Pending', value: counts['Pending'], bg: 'bg-amber-500/10' },
+    { label: 'In Progress', value: counts['In Progress'], bg: 'bg-blue-500/10' },
+    { label: 'Completed', value: counts['Completed'], bg: 'bg-teal-500/10' },
+    { label: 'Total', value: records.length, bg: 'bg-primary-500/10' },
   ]
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      {cards.map(({ label, value, color, bg }) => (
+      {cards.map(({ label, value, bg }) => (
         <div key={label} className="card flex items-center gap-3">
           <div className={`p-2.5 ${bg} rounded-lg text-lg`}>
             🦷
