@@ -2,11 +2,16 @@ import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, ClipboardList, Users, MessageSquare, Settings,
-  LogOut, Menu, Wallet, FlaskConical,
+  LogOut, Menu, Wallet,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { parseApiError } from '../utils/errorHandler'
+
+// Custom teeth icon component
+const TeethIcon = ({ size = 17 }: { size?: number }) => (
+  <span style={{ fontSize: `${size}px`, lineHeight: 1 }} aria-hidden="true">🦷</span>
+)
 
 const navItems = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -14,7 +19,7 @@ const navItems = [
   { to: '/admin/calendar', label: 'Calendar', icon: Calendar },
   { to: '/admin/clients', label: 'Patients', icon: Users },
   { to: '/admin/employee-payments', label: 'Employee Payments', icon: Wallet },
-  { to: '/admin/lab-work', label: 'Lab Work', icon: FlaskConical },
+  { to: '/admin/lab-work', label: 'Lab Work', icon: TeethIcon },
   { to: '/admin/testimonials', label: 'Testimonials', icon: MessageSquare },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]

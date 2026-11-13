@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import {
-  Search, Plus, Edit2, Trash2, X, Save, AlertCircle, FlaskConical,
+  Search, Plus, Edit2, Trash2, X, Save, AlertCircle,
   Filter, ChevronDown, ChevronLeft, ChevronRight,
   Building2, Phone, Mail, MapPin, ToggleLeft, ToggleRight,
 } from 'lucide-react'
@@ -685,14 +685,14 @@ function FilterBar({
 // ─────────────────────────────────────────────────────────────
 const workTypeIcons: Record<string, string> = {
   'PFM': '🦷',
-  '3D PFM': '🖨️',
-  'Zirconia': '💎',
-  'E-Max': '✨',
-  'Dentures': '🫦',
-  'Aligner': '📐',
-  'Inlay': '🔩',
-  'CC Plate': '🪛',
-  'Other': '📋',
+  '3D PFM': '🦷',
+  'Zirconia': '🦷',
+  'E-Max': '🦷',
+  'Dentures': '🦷',
+  'Aligner': '🦷',
+  'Inlay': '🦷',
+  'CC Plate': '🦷',
+  'Other': '🦷',
 }
 
 const MONTH_NAMES = [
@@ -772,8 +772,8 @@ function TreatmentSummaryCards({
           ))}
           {/* Totals card */}
           <div className="card flex items-center gap-3 py-3 border border-primary-500/20">
-            <div className="p-2 rounded-lg bg-primary-500/20 flex items-center justify-center w-9 h-9 flex-shrink-0">
-              <FlaskConical size={16} className="text-primary-400" />
+            <div className="p-2 rounded-lg bg-primary-500/20 flex items-center justify-center w-9 h-9 flex-shrink-0 text-base">
+              🦷
             </div>
             <div className="min-w-0">
               <p className="text-xs text-gray-400">Total</p>
@@ -810,8 +810,8 @@ function StatusSummaryCards({ records }: { records: LabWorkListItem[] }) {
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       {cards.map(({ label, value, color, bg }) => (
         <div key={label} className="card flex items-center gap-3">
-          <div className={`p-2.5 ${bg} rounded-lg`}>
-            <FlaskConical size={18} className={color} />
+          <div className={`p-2.5 ${bg} rounded-lg text-lg`}>
+            🦷
           </div>
           <div>
             <p className="text-xs text-gray-500">{label}</p>
@@ -1171,7 +1171,7 @@ export default function LabWorkPage() {
               : 'border-transparent text-gray-400 hover:text-white'
           }`}
         >
-          <FlaskConical size={15} />
+          <span className="text-base">🦷</span>
           Lab Work Orders
         </button>
         <button
