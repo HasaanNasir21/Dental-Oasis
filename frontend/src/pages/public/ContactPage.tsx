@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { MapPin, Clock, Phone, MessageCircle, ExternalLink, ChevronRight } from 'lucide-react'
 import { settingsApi } from '../../services/settingsApi'
 import type { ClinicInfo } from '../../types'
+import { useSEO } from '../../hooks/useSEO'
 
 const DEFAULT_INFO: ClinicInfo = {
   name: 'Dental Oasis',
@@ -17,8 +18,14 @@ const DEFAULT_INFO: ClinicInfo = {
 export default function ContactPage() {
   const [info, setInfo] = useState<ClinicInfo>(DEFAULT_INFO)
 
+  useSEO({
+    title: 'Contact Dental Oasis | Dentist in Johar Town, Lahore',
+    description:
+      'Contact Dental Oasis at 270 Block E2, Johar Town, Lahore. Open Mon–Sat 5–9 PM. Call or WhatsApp to book your dental appointment today.',
+    canonical: 'https://dentaloasis.pk/contact',
+  })
+
   useEffect(() => {
-    document.title = 'Contact | Dental Oasis — Johar Town, Lahore'
     settingsApi.getPublic()
       .then((r) => { if (r.success && r.data) setInfo(r.data) })
       .catch(() => {})

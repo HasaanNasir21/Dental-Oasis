@@ -4,6 +4,7 @@ import { ChevronRight, ChevronLeft, CheckCircle, AlertCircle, Calendar } from 'l
 import { serviceApi } from '../../services/serviceApi'
 import type { Service } from '../../types'
 import { PageLoader } from '../../components/ui/LoadingSpinner'
+import { useSEO } from '../../hooks/useSEO'
 
 // Static rich content per slug
 const SERVICE_CONTENT: Record<string, { benefits: string[]; info: string[]; description: string }> = {
@@ -85,6 +86,13 @@ export default function ServiceDetailPage() {
   const [service, setService] = useState<Service | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [seoTitle, setSeoTitle] = useState('Dental Treatment | Dental Oasis — Johar Town, Lahore')
+  const [seoDescription, setSeoDescription] = useState(
+    'Learn about dental treatments at Dental Oasis, Johar Town, Lahore. Book a free initial checkup today.',
+  )
+  const [seoCanonical, setSeoCanonical] = useState(`https://dentaloasis.pk/services/${slug ?? ''}`)
+
+  useSEO({ title: seoTitle, description: seoDescription, canonical: seoCanonical })
 
   useEffect(() => {
     if (!slug) { navigate('/services'); return }
@@ -93,7 +101,13 @@ export default function ServiceDetailPage() {
       .then((r) => {
         if (r.success && r.data) {
           setService(r.data)
-          document.title = `${r.data.name} | Dental Oasis — Johar Town, Lahore`
+          const name = r.data.name
+          const desc = r.data.short_description
+            ? `${r.data.short_description} Learn more about ${name} at Dental Oasis, Johar Town, Lahore.`
+            : `Learn about ${name} treatment at Dental Oasis in Johar Town, Lahore. Book a free initial checkup today.`
+          setSeoTitle(`${name} in Lahore | Dental Oasis`)
+          setSeoDescription(desc)
+          setSeoCanonical(`https://dentaloasis.pk/services/${slug}`)
         } else {
           setError(true)
         }
@@ -111,7 +125,10 @@ export default function ServiceDetailPage() {
             'dental-filling': 'Dental Filling',
           }
           const name = slugToName[slug] || slug
-          document.title = `${name} | Dental Oasis`
+          const shortDesc = staticContent.description.slice(0, 155).trimEnd()
+          setSeoTitle(`${name} in Lahore | Dental Oasis`)
+          setSeoDescription(shortDesc.length < staticContent.description.length ? `${shortDesc}…` : shortDesc)
+          setSeoCanonical(`https://dentaloasis.pk/services/${slug}`)
           setService({ id: 0, name, slug, short_description: null, description: staticContent.description, image_url: `/services/${slug}.jpg`, is_active: true, created_at: '', updated_at: '' })
         } else {
           setError(true)

@@ -7,6 +7,7 @@ import {
 import { serviceApi } from '../../services/serviceApi'
 import { testimonialApi } from '../../services/testimonialApi'
 import type { ServiceListItem, Testimonial } from '../../types'
+import { useSEO } from '../../hooks/useSEO'
 
 const whyChooseUs = [
   { icon: Heart, title: 'Patient-Focused Care', desc: 'We prioritize your comfort and well-being throughout every visit, ensuring a positive experience from start to finish.' },
@@ -42,6 +43,13 @@ function StarRating({ rating }: { rating: number }) {
 export default function HomePage() {
   const [services, setServices] = useState<ServiceListItem[]>([])
   const [testimonials, setTestimonials] = useState<Testimonial[]>([])
+
+  useSEO({
+    title: 'Dental Oasis Lahore | Best Dental Clinic in Johar Town',
+    description:
+      'Dental Oasis is a patient-focused dental clinic in Johar Town, Lahore. Free initial checkup, implants, braces, aligners, root canal, crowns, veneers & more. Book today.',
+    canonical: 'https://dentaloasis.pk/',
+  })
 
   useEffect(() => {
     serviceApi.list().then((r) => { if (r.success && r.data) setServices(r.data.slice(0, 6)) }).catch(() => {})

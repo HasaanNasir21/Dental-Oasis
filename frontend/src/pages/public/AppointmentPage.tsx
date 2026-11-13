@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -8,6 +8,7 @@ import { appointmentApi } from '../../services/appointmentApi'
 import { parseApiError } from '../../utils/errorHandler'
 import { APPOINTMENT_REASONS } from '../../types'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { useSEO } from '../../hooks/useSEO'
 
 const schema = z
   .object({
@@ -37,6 +38,13 @@ export default function AppointmentPage() {
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
+  useSEO({
+    title: 'Book a Dental Appointment in Lahore | Dental Oasis',
+    description:
+      'Book a dental appointment at Dental Oasis, Johar Town, Lahore. Fill in the form and our team will confirm your date and time. Free initial checkup available.',
+    canonical: 'https://dentaloasis.pk/appointment',
+  })
+
   const {
     register,
     handleSubmit,
@@ -49,10 +57,6 @@ export default function AppointmentPage() {
 
   const reason = watch('reason')
   const showOtherField = reason === 'Other'
-
-  useEffect(() => {
-    document.title = 'Book an Appointment | Dental Oasis — Johar Town, Lahore'
-  }, [])
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null)
