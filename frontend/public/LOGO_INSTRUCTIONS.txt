@@ -1,0 +1,14 @@
+IMPORTANT: Save the Dental Oasis logo as "dental-oasis-logo.png" in this directory.
+
+The logo should be:
+- Square format (recommended at least 48x48 pixels, ideally 512x512 for high-resolution displays)
+- PNG format
+- The Dental Oasis logo with the tooth, palm tree, and text
+
+This logo will be used as the favicon for the website and will appear in Google Search results.
+
+After saving the logo:
+1. Delete this instruction file
+2. Deploy the frontend to Railway
+3. Verify the favicon appears in your browser tab
+4. Request re-indexing in Google Search Console

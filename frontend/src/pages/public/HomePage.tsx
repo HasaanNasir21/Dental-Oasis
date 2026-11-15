@@ -9,6 +9,16 @@ import { testimonialApi } from '../../services/testimonialApi'
 import type { ServiceListItem, Testimonial } from '../../types'
 import { useSEO, BASE_URL } from '../../hooks/useSEO'
 
+// Static service data as fallback
+const STATIC_SERVICES = [
+  { id: 1, name: 'Checkup', slug: 'checkup', short_description: 'A comprehensive examination of your teeth, gums, and oral health.', image_url: '/services/checkup.jpg', is_active: true },
+  { id: 2, name: 'Dental Implant', slug: 'dental-implant', short_description: 'Replace missing teeth with a natural-looking, fixed tooth replacement.', image_url: '/services/dental-implant.jpg', is_active: true },
+  { id: 3, name: 'Braces', slug: 'braces', short_description: 'Orthodontic treatment to gradually move and straighten teeth.', image_url: '/services/braces.jpg', is_active: true },
+  { id: 4, name: 'Invisible Aligners', slug: 'invisible-aligners', short_description: 'Clear, removable trays for a discreet orthodontic option.', image_url: '/services/invisible-aligners.jpg', is_active: true },
+  { id: 5, name: 'Root Canal Treatment', slug: 'root-canal-treatment', short_description: 'Treatment for infected or severely inflamed tooth pulp.', image_url: '/services/root-canal-treatment.jpg', is_active: true },
+  { id: 6, name: 'Zirconia Crowns', slug: 'zirconia', short_description: 'Strong, durable ceramic crowns with a natural appearance.', image_url: '/services/zirconia.jpg', is_active: true },
+]
+
 const whyChooseUs = [
   { icon: Heart, title: 'Patient-Focused Care', desc: 'We prioritize your comfort and well-being throughout every visit, ensuring a positive experience from start to finish.' },
   { icon: Shield, title: 'Professional Services', desc: 'Our clinic provides a range of dental services in a clean, professional environment using modern equipment.' },
@@ -52,7 +62,21 @@ export default function HomePage() {
   })
 
   useEffect(() => {
-    serviceApi.list().then((r) => { if (r.success && r.data) setServices(r.data.slice(0, 6)) }).catch(() => {})
+    serviceApi.list()
+      .then((r) => {
+        if (r.success && r.data && r.data.length > 0) {
+          // Merge API data with static fallback images
+          const servicesWithImages = r.data.slice(0, 6).map((service) => ({
+            ...service,
+            // Use API image_url if available, otherwise fallback to static path
+            image_url: service.image_url || `/services/${service.slug}.jpg`,
+          }))
+          setServices(servicesWithImages)
+        } else {
+          setServices(STATIC_SERVICES as ServiceListItem[])
+        }
+      })
+      .catch(() => setServices(STATIC_SERVICES as ServiceListItem[]))
     testimonialApi.getPublished().then((r) => { if (r.success && r.data) setTestimonials(r.data.slice(0, 3)) }).catch(() => {})
   }, [])
 
@@ -239,25 +263,28 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-                { name: 'Checkup', desc: 'A comprehensive examination of your teeth, gums, and oral health.', free: true },
-                { name: 'Dental Implant', desc: 'Replace missing teeth with a natural-looking, fixed tooth replacement.' },
-                { name: 'Braces', desc: 'Orthodontic treatment to gradually move and straighten teeth.' },
-                { name: 'Invisible Aligners', desc: 'Clear, removable trays for a discreet orthodontic option.' },
-                { name: 'Root Canal Treatment', desc: 'Treatment for infected or severely inflamed tooth pulp.' },
-                { name: 'Zirconia Crowns', desc: 'Strong, durable ceramic crowns with a natural appearance.' },
-              ].map(({ name, desc, free }) => (
-                <Link key={name} to="/services" className="card group hover:border-primary-500/40 transition-colors">
-                  <div className="aspect-video bg-dark-600 rounded-lg mb-4 flex items-center justify-center">
-                    <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10 text-dark-400" stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 2C8.5 2 5 4.5 5 8c0 2 .5 4 1.5 5.5L8 20c.5 2 1.5 2 2 2s1-.5 1.5-1.5L12 18l.5 2.5c.5 1 1 1.5 1.5 1.5s1.5 0 2-2l1.5-6.5C18.5 12 19 10 19 8c0-3.5-3.5-6-7-6z"/>
-                    </svg>
+              {STATIC_SERVICES.map((service) => (
+                <Link key={service.id} to={`/services/${service.slug}`} className="card group hover:border-primary-500/40 transition-colors">
+                  <div className="aspect-video bg-dark-600 rounded-lg mb-4 overflow-hidden flex items-center justify-center">
+                    <img
+                      src={service.image_url}
+                      alt={`${service.name} dental service`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                    />
                   </div>
                   <h3 className="font-semibold text-white mb-1 group-hover:text-primary-400 transition-colors">
-                    {name}
-                    {free && <span className="ml-2 text-xs bg-green-500/20 text-green-300 border border-green-500/30 px-2 py-0.5 rounded-full">FREE</span>}
+                    {service.name}
+                    {service.name === 'Checkup' && (
+                      <span className="ml-2 text-xs bg-green-500/20 text-green-300 border border-green-500/30 px-2 py-0.5 rounded-full">FREE</span>
+                    )}
                   </h3>
-                  <p className="text-sm text-gray-400">{desc}</p>
+                  {service.short_description && (
+                    <p className="text-sm text-gray-400 line-clamp-2">{service.short_description}</p>
+                  )}
+                  <span className="inline-flex items-center gap-1 text-xs text-primary-400 mt-3">
+                    Learn More <ChevronRight size={12} />
+                  </span>
                 </Link>
               ))}
             </div>
