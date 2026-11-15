@@ -39,11 +39,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group" aria-label="Dental Oasis - Home">
-            <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center group-hover:bg-primary-500 transition-colors">
-              <svg viewBox="0 0 24 24" fill="white" width="20" height="20" aria-hidden="true">
-                <path d="M12 2C8.5 2 5 4.5 5 8c0 2 .5 4 1.5 5.5L8 20c.5 2 1.5 2 2 2s1-.5 1.5-1.5L12 18l.5 2.5c.5 1 1 1.5 1.5 1.5s1.5 0 2-2l1.5-6.5C18.5 12 19 10 19 8c0-3.5-3.5-6-7-6z"/>
-              </svg>
-            </div>
+            <img 
+              src="/dental-oasis-logo.png" 
+              alt="Dental Oasis Logo" 
+              className="w-9 h-9 rounded-xl group-hover:scale-105 transition-transform"
+            />
             <div>
               <span className="text-lg font-bold text-white">Dental Oasis</span>
             </div>
