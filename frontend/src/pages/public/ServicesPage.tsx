@@ -25,7 +25,7 @@ const STATIC_SERVICES = [
 ]
 
 export default function ServicesPage() {
-  const [services, setServices] = useState<ServiceListItem[]>([])
+  const [services, setServices] = useState<ServiceListItem[]>(STATIC_SERVICES as ServiceListItem[])
   const [loading, setLoading] = useState(true)
 
   useSEO({
@@ -33,6 +33,8 @@ export default function ServicesPage() {
     description:
       'Explore the full range of dental treatments at Dental Oasis, Johar Town, Lahore — checkups, implants, braces, aligners, root canal, crowns, veneers, fillings & more.',
     canonical: `${BASE_URL}/services`,
+    ogTitle: 'Dental Services & Treatments | Dental Oasis Lahore',
+    ogDescription: 'Complete dental care services including checkups (free), implants, braces, aligners, root canal, crowns, veneers, scaling & more at Dental Oasis, Johar Town, Lahore.',
   })
 
   useEffect(() => {
@@ -40,11 +42,11 @@ export default function ServicesPage() {
       .then((r) => {
         if (r.success && r.data && r.data.length > 0) {
           setServices(r.data)
-        } else {
-          setServices(STATIC_SERVICES as ServiceListItem[])
         }
       })
-      .catch(() => setServices(STATIC_SERVICES as ServiceListItem[]))
+      .catch(() => {
+        // Keep static services on error
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -52,6 +54,33 @@ export default function ServicesPage() {
 
   return (
     <div className="pt-24 pb-20">
+      {/* Add structured data for services */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "MedicalBusiness",
+            "name": "Dental Oasis",
+            "url": `${BASE_URL}/services`,
+            "description": "Comprehensive dental services in Johar Town, Lahore",
+            "hasOfferCatalog": {
+              "@type": "OfferCatalog",
+              "name": "Dental Services",
+              "itemListElement": services.map((service, index) => ({
+                "@type": "Offer",
+                "position": index + 1,
+                "itemOffered": {
+                  "@type": "MedicalProcedure",
+                  "name": service.name,
+                  "description": service.short_description,
+                }
+              }))
+            }
+          })
+        }}
+      />
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-14">
