@@ -63,11 +63,11 @@ export default function AdminLayout() {
         {/* Logo */}
         <div className="p-5 border-b border-dark-600">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="white" width="16" height="16" aria-hidden="true">
-                <path d="M12 2C8.5 2 5 4.5 5 8c0 2 .5 4 1.5 5.5L8 20c.5 2 1.5 2 2 2s1-.5 1.5-1.5L12 18l.5 2.5c.5 1 1 1.5 1.5 1.5s1.5 0 2-2l1.5-6.5C18.5 12 19 10 19 8c0-3.5-3.5-6-7-6z"/>
-              </svg>
-            </div>
+            <img 
+              src="/dental-oasis-logo.png" 
+              alt="Dental Oasis Logo" 
+              className="w-8 h-8 rounded-lg"
+            />
             <div>
               <p className="text-sm font-bold text-white">Dental Oasis</p>
               <p className="text-xs text-gray-500">Admin Panel</p>

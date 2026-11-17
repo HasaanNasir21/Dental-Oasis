@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Search, Plus, Edit2, Trash2, X, Save, AlertCircle,
   Filter, ChevronDown, ChevronLeft, ChevronRight,
   Building2, Phone, Mail, MapPin, ToggleLeft, ToggleRight,
+  ExternalLink,
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -221,6 +223,7 @@ function LaboratoriesTab({
   triggerNew: boolean
   onNewConsumed: () => void
 }) {
+  const navigate = useNavigate()
   const [records, setRecords] = useState<LaboratoryListItem[]>([])
   const [meta, setMeta] = useState<PaginationMeta | null>(null)
   const [loading, setLoading] = useState(true)
@@ -357,6 +360,14 @@ function LaboratoriesTab({
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => navigate(`/admin/laboratory/${r.id}`)}
+                          className="p-1.5 rounded text-gray-400 hover:text-primary-400 hover:bg-primary-500/10 transition-colors"
+                          aria-label={`View ${r.name} details`}
+                          title="View lab work for this laboratory"
+                        >
+                          <ExternalLink size={15} />
+                        </button>
                         <button
                           onClick={() => openEdit(r.id)}
                           className="p-1.5 rounded text-gray-400 hover:text-primary-400 hover:bg-primary-500/10 transition-colors"
