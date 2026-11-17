@@ -684,13 +684,13 @@ export default function LaboratoryDetailPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-400 text-xs">
-                      {r.teeth_display && r.teeth_display.length > 0 ? (
+                      {r.teeth && r.teeth.length > 0 ? (
                         <div className="flex flex-wrap gap-1 max-w-[200px]">
-                          {r.teeth_display.slice(0, 5).map((t) => (
-                            <span key={t} className="badge text-xs bg-dark-500 text-gray-300">{t}</span>
+                          {r.teeth.slice(0, 5).map((t: string) => (
+                            <span key={t} className="badge text-xs bg-dark-500 text-gray-300">{FDI_LABEL[t] || t}</span>
                           ))}
-                          {r.teeth_display.length > 5 && (
-                            <span className="text-xs text-gray-500">+{r.teeth_display.length - 5}</span>
+                          {r.teeth.length > 5 && (
+                            <span className="text-xs text-gray-500">+{r.teeth.length - 5}</span>
                           )}
                         </div>
                       ) : (
