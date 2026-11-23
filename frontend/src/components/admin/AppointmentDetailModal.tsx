@@ -10,6 +10,7 @@ import TreatmentSelect from '../ui/TreatmentSelect'
 import { appointmentApi } from '../../services/appointmentApi'
 import { clientApi } from '../../services/clientApi'
 import AppointmentFiles from './AppointmentFiles'
+import TeethSelector from './TeethSelector'
 import type { Appointment, AppointmentFile } from '../../types'
 import { APPOINTMENT_STATUSES } from '../../types'
 import { parseApiError, formatDate } from '../../utils/errorHandler'
@@ -56,6 +57,7 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
   const [error, setError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [files, setFiles] = useState<AppointmentFile[]>([])
+  const [teeth, setTeeth] = useState<string[]>([])
   const { showToast } = useToast()
 
   const { register, handleSubmit, reset, watch, control, formState: { errors } } = useForm<FormValues>({
@@ -109,6 +111,7 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
         if (r.success && r.data) {
           setAppt(r.data)
           setFiles(r.data.files ?? [])
+          setTeeth(r.data.teeth ?? [])
 
           // Resolve treatments: use the multi-treatment list if present,
           // otherwise fall back to [reason] from the legacy single field.
@@ -152,6 +155,7 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
         appointment_time: values.appointment_time || null,
         reason: primaryReason,
         treatments: values.treatments,
+        teeth,
         notes: values.notes || undefined,
         total_amount: resolvedTotal,
         amount_paid: values.amount_paid ? parseFloat(values.amount_paid) : null,
@@ -289,6 +293,12 @@ export default function AppointmentDetailModal({ appointmentId, onClose, onUpdat
               {errors.treatments && (
                 <p className="text-xs text-red-400 mt-1">{errors.treatments.message}</p>
               )}
+            </div>
+
+            {/* Teeth selector — FDI dental chart */}
+            <div>
+              <label className="label text-xs">Select Teeth (FDI Numbering)</label>
+              <TeethSelector value={teeth} onChange={setTeeth} />
             </div>
 
             {/* Notes */}

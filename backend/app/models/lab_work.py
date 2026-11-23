@@ -20,8 +20,8 @@ class LabWorkType(str, enum.Enum):
 
 class LabWorkStatus(str, enum.Enum):
     PENDING = "Pending"
-    IN_PROGRESS = "In Progress"
     COMPLETED = "Completed"
+    DELIVERED = "Delivered"
 
 
 class LabWork(Base):

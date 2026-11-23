@@ -172,6 +172,10 @@ def create_admin_appointment(db: Session, data: AppointmentCreate) -> Appointmen
     if data.treatments:
         appointment.treatments = json.dumps(data.treatments)
 
+    # Store selected teeth (FDI numbers) if provided
+    if data.teeth:
+        appointment.set_teeth(data.teeth)
+
     # Set last_payment_date when amount_paid is being recorded
     if data.amount_paid is not None:
         from app.timezone_utils import clinic_today
@@ -253,6 +257,12 @@ def update_appointment(db: Session, appointment_id: int, data: AppointmentUpdate
     if treatments_list is not None:
         # Empty list [] clears treatments (falls back to single `reason`)
         appointment.treatments = json.dumps(treatments_list) if treatments_list else None
+
+    # Handle teeth separately — encode list to JSON string
+    teeth_list = update_data.pop("teeth", None)
+    if teeth_list is not None:
+        # Empty list [] clears the tooth selection
+        appointment.set_teeth(teeth_list)
 
     # Track payment date: when amount_paid is set or changed, record today as last_payment_date
     if "amount_paid" in update_data:

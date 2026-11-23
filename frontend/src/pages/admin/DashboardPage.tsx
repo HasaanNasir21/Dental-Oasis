@@ -22,6 +22,7 @@ import ErrorState from '../../components/ui/ErrorState'
 import StatusBadge from '../../components/ui/StatusBadge'
 import Modal from '../../components/ui/Modal'
 import TimeSlotSelect from '../../components/ui/TimeSlotSelect'
+import TeethSelector from '../../components/admin/TeethSelector'
 import AppointmentDetailModal from '../../components/admin/AppointmentDetailModal'
 import { parseApiError, formatDate, formatTime } from '../../utils/errorHandler'
 import { getStatusLabel } from '../../utils/statusHelpers'
@@ -94,6 +95,7 @@ function NewAppointmentModal({
   onCreated: () => void
 }) {
   const [serverError, setServerError] = useState<string | null>(null)
+  const [teeth, setTeeth] = useState<string[]>([])
   const { showToast } = useToast()
   const { register, handleSubmit, watch, control, formState: { errors, isSubmitting } } = useForm<NewApptForm>({
     resolver: zodResolver(newApptSchema),
@@ -111,6 +113,7 @@ function NewAppointmentModal({
         appointment_date: values.appointment_date,
         appointment_time: values.appointment_time,
         status: values.status as Appointment['status'],
+        teeth,
         notes: values.notes || undefined,
       })
       showToast('Appointment created successfully.')
@@ -180,6 +183,12 @@ function NewAppointmentModal({
               <option key={s} value={s}>{getStatusLabel(s)}</option>
             ))}
           </select>
+        </div>
+
+        {/* Teeth selector — FDI dental chart */}
+        <div>
+          <label className="label">Select Teeth (FDI Numbering)</label>
+          <TeethSelector value={teeth} onChange={setTeeth} />
         </div>
 
         <div>

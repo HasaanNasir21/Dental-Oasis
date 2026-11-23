@@ -97,6 +97,8 @@ export interface Appointment {
   other_problem: string | null
   /** Multi-treatment list. When present, use instead of `reason` for display. Falls back to [reason] for legacy appointments. */
   treatments: string[] | null
+  /** FDI tooth numbers selected for this visit (e.g. ["16","17"]). Empty array when none selected. */
+  teeth: string[]
   status: AppointmentStatus
   appointment_date: string | null
   appointment_time: string | null
@@ -120,6 +122,7 @@ export interface AppointmentListItem {
   contact_number: string
   reason: string
   treatments: string[] | null
+  teeth: string[]
   status: AppointmentStatus
   appointment_date: string | null
   appointment_time: string | null
@@ -145,6 +148,8 @@ export interface AppointmentCreate {
   other_problem?: string
   /** Optional list of treatments — overrides `reason` for display when set */
   treatments?: string[]
+  /** FDI tooth numbers selected for this visit */
+  teeth?: string[]
   status: AppointmentStatus
   appointment_date?: string
   appointment_time?: string
@@ -162,6 +167,8 @@ export interface AppointmentUpdate {
   other_problem?: string
   /** Send updated list to change treatments; send [] to clear to single-reason mode */
   treatments?: string[]
+  /** FDI tooth numbers; send [] to clear the selection */
+  teeth?: string[]
   status?: AppointmentStatus
   appointment_date?: string | null
   appointment_time?: string | null
@@ -546,9 +553,9 @@ export type LabWorkType = 'PFM' | '3D PFM' | 'Zirconia' | 'E-Max' | 'Dentures' |
 
 export const LAB_WORK_TYPES: LabWorkType[] = ['PFM', '3D PFM', 'Zirconia', 'E-Max', 'Dentures', 'Aligner', 'Inlay', 'CC Plate', 'Other']
 
-export type LabWorkStatus = 'Pending' | 'In Progress' | 'Completed'
+export type LabWorkStatus = 'Pending' | 'Completed' | 'Delivered'
 
-export const LAB_WORK_STATUSES: LabWorkStatus[] = ['Pending', 'In Progress', 'Completed']
+export const LAB_WORK_STATUSES: LabWorkStatus[] = ['Pending', 'Completed', 'Delivered']
 
 export interface LabWork {
   id: number

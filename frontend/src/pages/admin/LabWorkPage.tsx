@@ -40,8 +40,8 @@ const FDI_LABEL: Record<string, string> = {}
 
 const statusColors: Record<string, string> = {
   'Pending': 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
-  'In Progress': 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
   'Completed': 'bg-teal-500/20 text-teal-300 border border-teal-500/30',
+  'Delivered': 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
 }
 
 const workTypeColors: Record<string, string> = {
@@ -805,15 +805,15 @@ function TreatmentSummaryCards({
 //  STATUS SUMMARY CARDS
 // ─────────────────────────────────────────────────────────────
 function StatusSummaryCards({ records }: { records: LabWorkListItem[] }) {
-  const counts = { 'Pending': 0, 'In Progress': 0, 'Completed': 0 }
+  const counts = { 'Pending': 0, 'Completed': 0, 'Delivered': 0 }
   records.forEach((r) => {
     if (r.status in counts) counts[r.status as keyof typeof counts]++
   })
 
   const cards = [
     { label: 'Pending', value: counts['Pending'], bg: 'bg-amber-500/10' },
-    { label: 'In Progress', value: counts['In Progress'], bg: 'bg-blue-500/10' },
     { label: 'Completed', value: counts['Completed'], bg: 'bg-teal-500/10' },
+    { label: 'Delivered', value: counts['Delivered'], bg: 'bg-blue-500/10' },
     { label: 'Total', value: records.length, bg: 'bg-primary-500/10' },
   ]
 

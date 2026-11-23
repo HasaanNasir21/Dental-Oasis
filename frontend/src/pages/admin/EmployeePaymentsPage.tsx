@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   Search, Plus, Edit2, Trash2, X, Save, AlertCircle, Wallet,
-  TrendingUp, Users, DollarSign,
+  TrendingUp, Users, DollarSign, Lock,
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -561,15 +561,6 @@ export default function EmployeePaymentsPage() {
     }
   }
 
-  const openEditPayment = async (id: number) => {
-    try {
-      const res = await employeeApi.getPaymentById(id)
-      if (res.data) setFormPayment(res.data)
-    } catch (e) {
-      showToast(parseApiError(e), 'error')
-    }
-  }
-
   const clearFilters = () => {
     setFilterEmpId('')
     setFromDate('')
@@ -696,14 +687,15 @@ export default function EmployeePaymentsPage() {
                         <td className="px-4 py-3 font-semibold text-green-400 whitespace-nowrap">Rs. {p.amount.toLocaleString('en-PK')}</td>
                         <td className="px-4 py-3 text-gray-400 max-w-[200px] truncate">{p.notes || '—'}</td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => openEditPayment(p.id)} className="p-1.5 rounded text-gray-400 hover:text-primary-400 hover:bg-primary-500/10 transition-colors" aria-label={`Edit payment ${p.id}`}>
-                              <Edit2 size={15} />
-                            </button>
-                            <button onClick={() => setDeletePaymentId(p.id)} className="p-1.5 rounded text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors" aria-label={`Delete payment ${p.id}`}>
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
+                          {/* Payments are locked once recorded — edit & delete are intentionally hidden.
+                              The underlying API endpoints still exist and can be restored here if needed. */}
+                          <span
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-dark-600 border border-dark-500 text-xs text-gray-500"
+                            title="Recorded payments cannot be edited or deleted"
+                          >
+                            <Lock size={11} />
+                            Locked
+                          </span>
                         </td>
                       </tr>
                     ))}

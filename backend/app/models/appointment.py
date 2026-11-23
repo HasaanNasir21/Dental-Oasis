@@ -55,6 +55,9 @@ class Appointment(Base):
     # Comma-separated or JSON-encoded list of treatment names for multi-treatment support.
     # Stored as JSON array text. When populated, takes precedence over `reason` for display.
     treatments = Column(Text, nullable=True)
+    # JSON-encoded array of FDI tooth numbers, e.g. ["16","17","26","27"].
+    # Selected by staff when creating/editing an appointment (mirrors lab work).
+    teeth = Column(Text, nullable=True)
     total_amount = Column(Numeric(10, 2), nullable=True)
     amount_paid = Column(Numeric(10, 2), nullable=True)
     # Date when a payment (amount_paid) was last recorded. Used for monthly revenue bucketing
@@ -75,6 +78,19 @@ class Appointment(Base):
     def set_treatments(self, treatments: list) -> None:
         """Store a list of treatment names as a JSON string."""
         self.treatments = json.dumps(treatments) if treatments else None
+
+    def get_teeth(self) -> list:
+        """Return selected teeth as a list of FDI number strings."""
+        if self.teeth:
+            try:
+                return json.loads(self.teeth)
+            except (json.JSONDecodeError, TypeError):
+                return []
+        return []
+
+    def set_teeth(self, teeth: list) -> None:
+        """Store a list of FDI tooth numbers as a JSON string (sorted, deduped)."""
+        self.teeth = json.dumps(sorted(set(teeth))) if teeth else None
 
     # Relationships
     client = relationship("Client", back_populates="appointments")

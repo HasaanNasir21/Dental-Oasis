@@ -34,7 +34,7 @@ class LabWorkBase(BaseModel):
     @field_validator("status")
     @classmethod
     def validate_status(cls, v: str) -> str:
-        valid_statuses = {"Pending", "In Progress", "Completed"}
+        valid_statuses = {"Pending", "Completed", "Delivered"}
         if v not in valid_statuses:
             raise ValueError(f"Status must be one of: {', '.join(sorted(valid_statuses))}.")
         return v
@@ -113,7 +113,7 @@ class LabWorkUpdate(BaseModel):
     @classmethod
     def validate_status(cls, v: Optional[str]) -> Optional[str]:
         if v is not None:
-            valid_statuses = {"Pending", "In Progress", "Completed"}
+            valid_statuses = {"Pending", "Completed", "Delivered"}
             if v not in valid_statuses:
                 raise ValueError(f"Status must be one of: {', '.join(sorted(valid_statuses))}.")
         return v

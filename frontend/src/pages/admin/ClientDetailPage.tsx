@@ -18,6 +18,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import StatusBadge from '../../components/ui/StatusBadge'
 import Modal from '../../components/ui/Modal'
 import TimeSlotSelect from '../../components/ui/TimeSlotSelect'
+import TeethSelector from '../../components/admin/TeethSelector'
 import { parseApiError, formatDate, formatTime } from '../../utils/errorHandler'
 import { useToast } from '../../context/ToastContext'
 import AppointmentDetailModal from '../../components/admin/AppointmentDetailModal'
@@ -70,6 +71,7 @@ function ClientAppointmentForm({
   onSaved: () => void
 }) {
   const [serverError, setServerError] = useState<string | null>(null)
+  const [teeth, setTeeth] = useState<string[]>([])
   const { showToast } = useToast()
   const { register, handleSubmit, watch, control, formState: { errors, isSubmitting } } = useForm<AppointmentForm>({
     resolver: zodResolver(appointmentSchema),
@@ -88,6 +90,7 @@ function ClientAppointmentForm({
         status: values.status as Appointment['status'],
         appointment_date: values.appointment_date,
         appointment_time: values.appointment_time,
+        teeth,
         notes: values.notes || undefined,
       })
       showToast('Appointment created successfully.')
@@ -141,6 +144,13 @@ function ClientAppointmentForm({
             {APPOINTMENT_STATUSES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
           </select>
         </div>
+
+        {/* Teeth selector — FDI dental chart */}
+        <div>
+          <label className="label">Select Teeth (FDI Numbering)</label>
+          <TeethSelector value={teeth} onChange={setTeeth} />
+        </div>
+
         <div>
           <label className="label" htmlFor="notes">Notes</label>
           <textarea id="notes" rows={3} className="input resize-none" {...register('notes')} />

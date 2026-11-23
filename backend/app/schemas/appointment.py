@@ -18,6 +18,23 @@ def validate_contact_number(v: str) -> str:
     return v
 
 
+def _validate_teeth(v: Optional[List[str]]) -> Optional[List[str]]:
+    """Validate FDI tooth numbers (11-18, 21-28, 31-38, 41-48)."""
+    if v is None:
+        return v
+    valid_teeth = {f"{q}{pos}" for q in (1, 2, 3, 4) for pos in range(1, 9)}
+    cleaned = []
+    for t in v:
+        t_str = str(t).strip()
+        if t_str not in valid_teeth:
+            raise ValueError(
+                f"Invalid tooth number: {t_str}. Use FDI numbers "
+                f"(11-18, 21-28, 31-38, 41-48)."
+            )
+        cleaned.append(t_str)
+    return sorted(set(cleaned))
+
+
 class PublicAppointmentCreate(BaseModel):
     patient_name: str
     contact_number: str
@@ -90,6 +107,8 @@ class AppointmentCreate(BaseModel):
     # Multiple treatments — takes precedence over `reason` for display when populated.
     # Each entry must be a valid AppointmentReason value.
     treatments: Optional[List[str]] = None
+    # FDI tooth numbers selected for this visit (optional, set by staff).
+    teeth: Optional[List[str]] = None
     status: AppointmentStatus = AppointmentStatus.CONFIRMED
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
@@ -130,6 +149,11 @@ class AppointmentCreate(BaseModel):
                     raise ValueError(f"Invalid treatment: {treatment}")
         return v
 
+    @field_validator("teeth")
+    @classmethod
+    def validate_teeth(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        return _validate_teeth(v)
+
     @field_validator("total_amount", "amount_paid")
     @classmethod
     def validate_positive(cls, v: Optional[Decimal]) -> Optional[Decimal]:
@@ -147,6 +171,8 @@ class AppointmentUpdate(BaseModel):
     other_problem: Optional[str] = None
     # Multiple treatments — send an empty list [] to clear back to single-reason mode.
     treatments: Optional[List[str]] = None
+    # FDI tooth numbers selected for this visit. Send [] to clear the selection.
+    teeth: Optional[List[str]] = None
     status: Optional[AppointmentStatus] = None
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
@@ -189,6 +215,11 @@ class AppointmentUpdate(BaseModel):
                     raise ValueError(f"Invalid treatment: {treatment}")
         return v
 
+    @field_validator("teeth")
+    @classmethod
+    def validate_teeth(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        return _validate_teeth(v)
+
     @field_validator("total_amount", "amount_paid")
     @classmethod
     def validate_positive(cls, v: Optional[Decimal]) -> Optional[Decimal]:
@@ -208,6 +239,8 @@ class AppointmentOut(BaseModel):
     # Decoded list of treatment names. Populated from the DB `treatments` JSON column.
     # Falls back to [reason] when treatments column is NULL (legacy appointments).
     treatments: Optional[List[str]] = None
+    # FDI tooth numbers selected for this visit (decoded from the DB JSON column).
+    teeth: List[str] = []
     status: AppointmentStatus
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
@@ -233,6 +266,20 @@ class AppointmentOut(BaseModel):
                 return [v]
         return v
 
+    @field_validator("teeth", mode="before")
+    @classmethod
+    def decode_teeth(cls, v):
+        """Decode JSON string from DB into a Python list of FDI numbers."""
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                return parsed if isinstance(parsed, list) else []
+            except (json.JSONDecodeError, ValueError):
+                return []
+        if v is None:
+            return []
+        return v
+
 
 # Imported here to avoid circular import — AppointmentFileOut needs AppointmentOut
 # to be defined first (it's used inside it via forward ref).
@@ -247,6 +294,7 @@ class AppointmentList(BaseModel):
     contact_number: str
     reason: str
     treatments: Optional[List[str]] = None
+    teeth: List[str] = []
     status: AppointmentStatus
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
@@ -265,4 +313,18 @@ class AppointmentList(BaseModel):
                 return json.loads(v)
             except (json.JSONDecodeError, ValueError):
                 return [v]
+        return v
+
+    @field_validator("teeth", mode="before")
+    @classmethod
+    def decode_teeth(cls, v):
+        """Decode JSON string from DB into a Python list of FDI numbers."""
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                return parsed if isinstance(parsed, list) else []
+            except (json.JSONDecodeError, ValueError):
+                return []
+        if v is None:
+            return []
         return v
