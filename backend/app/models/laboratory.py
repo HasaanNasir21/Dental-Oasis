@@ -20,3 +20,5 @@ class Laboratory(Base):
 
     # All lab work sent to this laboratory
     lab_works = relationship("LabWork", back_populates="laboratory")
+    # All payments made to this laboratory
+    payments = relationship("LaboratoryPayment", back_populates="laboratory", cascade="all, delete-orphan")

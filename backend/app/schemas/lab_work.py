@@ -13,15 +13,6 @@ class LabWorkBase(BaseModel):
     status: str = "Pending"
     work_date: date
     notes: Optional[str] = None
-    cost: Optional[Decimal] = None
-    amount_paid: Optional[Decimal] = None
-
-    @field_validator("cost", "amount_paid")
-    @classmethod
-    def validate_non_negative(cls, v: Optional[Decimal]) -> Optional[Decimal]:
-        if v is not None and v < 0:
-            raise ValueError("Amount must not be negative.")
-        return v
 
     @field_validator("patient_name")
     @classmethod
@@ -98,15 +89,6 @@ class LabWorkUpdate(BaseModel):
     status: Optional[str] = None
     work_date: Optional[date] = None
     notes: Optional[str] = None
-    cost: Optional[Decimal] = None
-    amount_paid: Optional[Decimal] = None
-
-    @field_validator("cost", "amount_paid")
-    @classmethod
-    def validate_non_negative(cls, v: Optional[Decimal]) -> Optional[Decimal]:
-        if v is not None and v < 0:
-            raise ValueError("Amount must not be negative.")
-        return v
 
     @field_validator("patient_name")
     @classmethod
@@ -188,8 +170,6 @@ class LabWorkOut(BaseModel):
     status: str
     work_date: date
     notes: Optional[str] = None
-    cost: Optional[Decimal] = None
-    amount_paid: Optional[Decimal] = None
     created_at: datetime
     updated_at: datetime
 
@@ -205,8 +185,6 @@ class LabWorkList(BaseModel):
     teeth: List[str] = []
     status: str
     work_date: date
-    cost: Optional[Decimal] = None
-    amount_paid: Optional[Decimal] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

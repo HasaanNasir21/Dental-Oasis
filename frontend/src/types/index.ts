@@ -557,15 +557,47 @@ export type LabWorkStatus = 'Pending' | 'Completed' | 'Delivered'
 
 export const LAB_WORK_STATUSES: LabWorkStatus[] = ['Pending', 'Completed', 'Delivered']
 
-export interface LaboratoryPaymentSummary {
+// ---- Laboratory Payments ----
+
+export interface LaboratoryPayment {
+  id: number
+  laboratory_id: number
+  laboratory_name: string | null
+  amount: number
+  payment_date: string
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LaboratoryPaymentCreate {
+  laboratory_id: number
+  amount: number
+  payment_date: string
+  notes?: string
+}
+
+export interface LaboratoryPaymentUpdate {
+  amount?: number
+  payment_date?: string
+  notes?: string
+}
+
+export interface MonthlyPaymentSummary {
+  year: number
+  month: number
+  total_amount: number
+  payment_count: number
+  payments: LaboratoryPayment[]
+}
+
+export interface LaboratoryPaymentStats {
   laboratory_id: number
   laboratory_name: string
-  total_cost: number
-  total_paid: number
-  total_pending: number
-  work_count: number
-  paid_work_count: number
-  unpaid_work_count: number
+  current_month_total: number
+  current_month_count: number
+  all_time_total: number
+  all_time_count: number
 }
 
 export interface LabWork {
@@ -579,8 +611,6 @@ export interface LabWork {
   status: LabWorkStatus
   work_date: string
   notes: string | null
-  cost: number | null
-  amount_paid: number | null
   created_at: string
   updated_at: string
 }
@@ -594,8 +624,6 @@ export interface LabWorkListItem {
   teeth: string[]
   status: LabWorkStatus
   work_date: string
-  cost: number | null
-  amount_paid: number | null
   created_at: string
 }
 
@@ -608,8 +636,6 @@ export interface LabWorkCreate {
   status: LabWorkStatus
   work_date: string
   notes?: string
-  cost?: number | null
-  amount_paid?: number | null
 }
 
 export interface LabWorkUpdate {
@@ -621,8 +647,6 @@ export interface LabWorkUpdate {
   status?: LabWorkStatus
   work_date?: string
   notes?: string
-  cost?: number | null
-  amount_paid?: number | null
 }
 
 export interface WorkTypeSummaryItem {

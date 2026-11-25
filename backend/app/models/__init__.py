@@ -9,6 +9,7 @@ from app.models.employee import Employee
 from app.models.employee_payment import EmployeePayment
 from app.models.laboratory import Laboratory
 from app.models.lab_work import LabWork, LabWorkType, LabWorkStatus
+from app.models.laboratory_payment import LaboratoryPayment
 
 __all__ = [
     "Client",
@@ -25,4 +26,5 @@ __all__ = [
     "LabWork",
     "LabWorkType",
     "LabWorkStatus",
+    "LaboratoryPayment",
 ]

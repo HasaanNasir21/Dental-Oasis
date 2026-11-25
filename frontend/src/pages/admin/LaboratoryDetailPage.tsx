@@ -3,16 +3,18 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   Search, Edit2, Trash2, X, Save, AlertCircle,
   Filter, ChevronDown, ChevronLeft, ChevronRight,
-  ArrowLeft, Plus, DollarSign, CheckCircle, Clock,
+  ArrowLeft, Plus, DollarSign, Calendar,
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { labWorkApi } from '../../services/labWorkApi'
 import { laboratoryApi } from '../../services/laboratoryApi'
+import { laboratoryPaymentApi } from '../../services/laboratoryPaymentApi'
 import type {
   LabWork, LabWorkListItem, PaginationMeta, LabWorkType, LabWorkStatus,
-  Laboratory, WorkTypeSummaryItem, LabWorkTeethSummary, LaboratoryPaymentSummary,
+  Laboratory, WorkTypeSummaryItem, LabWorkTeethSummary,
+  LaboratoryPaymentStats, MonthlyPaymentSummary, LaboratoryPayment,
 } from '../../types'
 import { LAB_WORK_TYPES, LAB_WORK_STATUSES } from '../../types'
 import TeethSelector from '../../components/admin/TeethSelector'
@@ -70,62 +72,338 @@ const fmt = (n: number) =>
   n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 
 // ─────────────────────────────────────────────────────────────
-//  PAYMENT SUMMARY BANNER
+//  PAYMENT STATS BANNER
 // ─────────────────────────────────────────────────────────────
-function PaymentSummaryBanner({ summary }: { summary: LaboratoryPaymentSummary }) {
-  const pendingPct =
-    summary.total_cost > 0
-      ? Math.round((summary.total_pending / summary.total_cost) * 100)
-      : 0
-
+function PaymentStatsBanner({ stats }: { stats: LaboratoryPaymentStats }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      {/* Total cost */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      {/* Current Month */}
       <div className="card flex items-center gap-4 py-4">
         <div className="p-2.5 rounded-lg bg-blue-500/20 text-blue-300 flex-shrink-0">
+          <Calendar size={20} />
+        </div>
+        <div>
+          <p className="text-xs text-gray-400 uppercase tracking-wider">Current Month</p>
+          <p className="text-xl font-bold text-white leading-tight">
+            {fmt(stats.current_month_total)}
+            <span className="text-xs font-normal text-gray-500 ml-1">PKR</span>
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">{stats.current_month_count} payment{stats.current_month_count !== 1 ? 's' : ''}</p>
+        </div>
+      </div>
+
+      {/* All Time */}
+      <div className="card flex items-center gap-4 py-4">
+        <div className="p-2.5 rounded-lg bg-teal-500/20 text-teal-300 flex-shrink-0">
           <DollarSign size={20} />
         </div>
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider">Total Cost</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider">All Time</p>
           <p className="text-xl font-bold text-white leading-tight">
-            {fmt(summary.total_cost)}
+            {fmt(stats.all_time_total)}
             <span className="text-xs font-normal text-gray-500 ml-1">PKR</span>
           </p>
-          <p className="text-xs text-gray-500 mt-0.5">{summary.work_count} orders</p>
+          <p className="text-xs text-gray-500 mt-0.5">{stats.all_time_count} payment{stats.all_time_count !== 1 ? 's' : ''}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+//  PAYMENTS SECTION
+// ─────────────────────────────────────────────────────────────
+const paymentSchema = z.object({
+  amount: z
+    .string()
+    .min(1, 'Amount is required')
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, { message: 'Amount must be greater than zero' }),
+  payment_date: z.string().min(1, 'Payment date is required'),
+  notes: z.string().max(500).optional().or(z.literal('')),
+})
+type PaymentFormValues = z.infer<typeof paymentSchema>
+
+function PaymentFormModal({
+  payment,
+  laboratoryId,
+  onClose,
+  onSaved,
+}: {
+  payment: LaboratoryPayment | null
+  laboratoryId: number
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [serverError, setServerError] = useState<string | null>(null)
+  const { showToast } = useToast()
+  const isEdit = !!payment
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<PaymentFormValues>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      amount: payment?.amount != null ? String(payment.amount) : '',
+      payment_date: payment?.payment_date ?? todayStr(),
+      notes: payment?.notes ?? '',
+    },
+  })
+
+  const onSubmit = async (values: PaymentFormValues) => {
+    setServerError(null)
+    try {
+      const payload = {
+        laboratory_id: laboratoryId,
+        amount: Number(values.amount),
+        payment_date: values.payment_date,
+        notes: values.notes || undefined,
+      }
+      if (isEdit && payment) {
+        await laboratoryPaymentApi.update(payment.id, {
+          amount: payload.amount,
+          payment_date: payload.payment_date,
+          notes: payload.notes,
+        })
+        showToast('Payment updated successfully.')
+      } else {
+        await laboratoryPaymentApi.create(payload)
+        showToast('Payment added successfully.')
+      }
+      onSaved()
+      onClose()
+    } catch (e) {
+      setServerError(parseApiError(e))
+    }
+  }
+
+  return (
+    <Modal isOpen onClose={onClose} title={isEdit ? 'Edit Payment' : 'Add Payment'}>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+        {/* Amount */}
+        <div>
+          <label className="label" htmlFor="pay-amount">Amount (PKR) <span className="text-red-400">*</span></label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">PKR</span>
+            <input
+              id="pay-amount"
+              type="number"
+              min="0"
+              step="0.01"
+              className={`input pl-10 ${errors.amount ? 'border-red-500' : ''}`}
+              placeholder="0.00"
+              {...register('amount')}
+            />
+          </div>
+          {errors.amount && <p className="field-error">{errors.amount.message}</p>}
+        </div>
+
+        {/* Payment Date */}
+        <div>
+          <label className="label" htmlFor="pay-date">Payment Date <span className="text-red-400">*</span></label>
+          <input
+            id="pay-date"
+            type="date"
+            max={todayStr()}
+            className={`input ${errors.payment_date ? 'border-red-500' : ''}`}
+            {...register('payment_date')}
+          />
+          {errors.payment_date && <p className="field-error">{errors.payment_date.message}</p>}
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className="label" htmlFor="pay-notes">Notes (Optional)</label>
+          <textarea
+            id="pay-notes"
+            rows={3}
+            className="input resize-none"
+            placeholder="Optional notes about this payment"
+            {...register('notes')}
+          />
+        </div>
+
+        {serverError && (
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2" role="alert">
+            <AlertCircle size={14} className="text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-300">{serverError}</p>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-3 pt-2">
+          <button type="button" onClick={onClose} className="btn-ghost text-sm">Cancel</button>
+          <button type="submit" disabled={isSubmitting} className="btn-primary text-sm">
+            {isSubmitting ? <LoadingSpinner size="sm" /> : <Save size={14} />}
+            {isSubmitting ? 'Saving...' : isEdit ? 'Update Payment' : 'Add Payment'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+function PaymentsSection({
+  laboratoryId,
+  year,
+  month,
+  onPrevMonth,
+  onNextMonth,
+  isCurrentMonth,
+}: {
+  laboratoryId: number
+  year: number
+  month: number
+  onPrevMonth: () => void
+  onNextMonth: () => void
+  isCurrentMonth: boolean
+}) {
+  const [summary, setSummary] = useState<MonthlyPaymentSummary | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [formPayment, setFormPayment] = useState<LaboratoryPayment | null | undefined>(undefined)
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const { showToast } = useToast()
+
+  const loadPayments = useCallback(() => {
+    setLoading(true)
+    laboratoryPaymentApi.getMonthlyPayments(laboratoryId, year, month)
+      .then((r) => setSummary(r.data))
+      .catch((e) => console.error('Failed to load payments:', e))
+      .finally(() => setLoading(false))
+  }, [laboratoryId, year, month])
+
+  useEffect(() => { loadPayments() }, [loadPayments])
+
+  const handleDelete = async () => {
+    if (!deleteId) return
+    setDeleting(true)
+    try {
+      await laboratoryPaymentApi.delete(deleteId)
+      showToast('Payment deleted successfully.')
+      setDeleteId(null)
+      loadPayments()
+    } catch (e) {
+      showToast(parseApiError(e), 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const onPaymentSaved = () => {
+    setFormPayment(undefined)
+    loadPayments()
+  }
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Payments</h2>
+          <span className="text-xs text-gray-500">— monthly payment history</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onPrevMonth}
+            className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-dark-500 transition-colors"
+            aria-label="Previous month"
+          >
+            <ChevronLeft size={15} />
+          </button>
+          <span className="text-sm font-medium text-white min-w-[130px] text-center">
+            {MONTH_NAMES[month - 1]} {year}
+            {isCurrentMonth && (
+              <span className="ml-1.5 text-xs font-normal text-primary-400">(current)</span>
+            )}
+          </span>
+          <button
+            onClick={onNextMonth}
+            disabled={isCurrentMonth}
+            className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-dark-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Next month"
+          >
+            <ChevronRight size={15} />
+          </button>
+          <button onClick={() => setFormPayment(null)} className="btn-primary text-sm ml-4">
+            <Plus size={14} /> Add Payment
+          </button>
         </div>
       </div>
 
-      {/* Received */}
-      <div className="card flex items-center gap-4 py-4">
-        <div className="p-2.5 rounded-lg bg-teal-500/20 text-teal-300 flex-shrink-0">
-          <CheckCircle size={20} />
+      {loading ? (
+        <div className="card py-6"><LoadingSpinner size="md" /></div>
+      ) : !summary || summary.payments.length === 0 ? (
+        <div className="card py-6 text-center">
+          <p className="text-sm text-gray-500 mb-3">No payments recorded for {MONTH_NAMES[month - 1]} {year}.</p>
+          <button onClick={() => setFormPayment(null)} className="btn-primary text-sm">
+            <Plus size={14} /> Add First Payment
+          </button>
         </div>
-        <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider">Paid to Lab</p>
-          <p className="text-xl font-bold text-white leading-tight">
-            {fmt(summary.total_paid)}
-            <span className="text-xs font-normal text-gray-500 ml-1">PKR</span>
-          </p>
-          <p className="text-xs text-gray-500 mt-0.5">{summary.paid_work_count} fully paid</p>
-        </div>
-      </div>
+      ) : (
+        <>
+          <div className="card overflow-x-auto p-0 mb-3">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-dark-500">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase">Date</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase">Amount</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase">Notes</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.payments.map((p) => (
+                  <tr key={p.id} className="border-b border-dark-600 hover:bg-dark-600/40 transition-colors">
+                    <td className="px-4 py-3 text-white">{formatDate(p.payment_date)}</td>
+                    <td className="px-4 py-3 text-white font-mono">{fmt(p.amount)} PKR</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">{p.notes || <span className="text-gray-600">—</span>}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setFormPayment(p)}
+                          className="p-1.5 rounded text-gray-400 hover:text-primary-400 hover:bg-primary-500/10 transition-colors"
+                          aria-label="Edit payment"
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteId(p.id)}
+                          className="p-1.5 rounded text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          aria-label="Delete payment"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-400">
+              Total for {MONTH_NAMES[month - 1]}: <span className="text-white font-bold">{fmt(summary.total_amount)} PKR</span>
+            </p>
+          </div>
+        </>
+      )}
 
-      {/* Pending */}
-      <div className="card flex items-center gap-4 py-4">
-        <div className={`p-2.5 rounded-lg flex-shrink-0 ${summary.total_pending > 0 ? 'bg-amber-500/20 text-amber-300' : 'bg-gray-500/20 text-gray-400'}`}>
-          <Clock size={20} />
-        </div>
-        <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider">Pending</p>
-          <p className={`text-xl font-bold leading-tight ${summary.total_pending > 0 ? 'text-amber-300' : 'text-white'}`}>
-            {fmt(summary.total_pending)}
-            <span className="text-xs font-normal text-gray-500 ml-1">PKR</span>
-          </p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {pendingPct}% unpaid · {summary.unpaid_work_count} orders
-          </p>
-        </div>
-      </div>
+      {formPayment !== undefined && (
+        <PaymentFormModal
+          payment={formPayment}
+          laboratoryId={laboratoryId}
+          onClose={() => setFormPayment(undefined)}
+          onSaved={onPaymentSaved}
+        />
+      )}
+      <ConfirmModal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Delete Payment"
+        message="Are you sure you want to delete this payment? This action cannot be undone."
+        isLoading={deleting}
+      />
     </div>
   )
 }
@@ -139,16 +417,6 @@ const labWorkSchema = z.object({
   status: z.string(),
   work_date: z.string().min(1, 'Date is required'),
   notes: z.string().max(5000).optional().or(z.literal('')),
-  cost: z
-    .string()
-    .optional()
-    .or(z.literal(''))
-    .refine((v) => !v || (!isNaN(Number(v)) && Number(v) >= 0), { message: 'Cost must be a positive number' }),
-  amount_paid: z
-    .string()
-    .optional()
-    .or(z.literal(''))
-    .refine((v) => !v || (!isNaN(Number(v)) && Number(v) >= 0), { message: 'Amount paid must be a positive number' }),
 })
 type LabWorkFormValues = z.infer<typeof labWorkSchema>
 
@@ -180,8 +448,6 @@ function LabWorkFormModal({
       status: record?.status ?? 'Pending',
       work_date: record?.work_date ?? todayStr(),
       notes: record?.notes ?? '',
-      cost: record?.cost != null ? String(record.cost) : '',
-      amount_paid: record?.amount_paid != null ? String(record.amount_paid) : '',
     },
   })
 
@@ -196,8 +462,6 @@ function LabWorkFormModal({
         status: values.status as LabWorkStatus,
         work_date: values.work_date,
         notes: values.notes || undefined,
-        cost: values.cost ? Number(values.cost) : null,
-        amount_paid: values.amount_paid ? Number(values.amount_paid) : null,
       }
       if (isEdit && record) {
         await labWorkApi.update(record.id, payload)
@@ -260,42 +524,6 @@ function LabWorkFormModal({
             {...register('work_date')}
           />
           {errors.work_date && <p className="field-error">{errors.work_date.message}</p>}
-        </div>
-
-        {/* Cost + Amount Paid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="label" htmlFor="lw-cost">Cost (PKR)</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">PKR</span>
-              <input
-                id="lw-cost"
-                type="number"
-                min="0"
-                step="0.01"
-                className={`input pl-10 ${errors.cost ? 'border-red-500' : ''}`}
-                placeholder="0.00"
-                {...register('cost')}
-              />
-            </div>
-            {errors.cost && <p className="field-error">{errors.cost.message}</p>}
-          </div>
-          <div>
-            <label className="label" htmlFor="lw-paid">Amount Paid (PKR)</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">PKR</span>
-              <input
-                id="lw-paid"
-                type="number"
-                min="0"
-                step="0.01"
-                className={`input pl-10 ${errors.amount_paid ? 'border-red-500' : ''}`}
-                placeholder="0.00"
-                {...register('amount_paid')}
-              />
-            </div>
-            {errors.amount_paid && <p className="field-error">{errors.amount_paid.message}</p>}
-          </div>
         </div>
 
         {/* Teeth Selector */}
@@ -517,36 +745,6 @@ function TreatmentSummaryCards({
 }
 
 // ─────────────────────────────────────────────────────────────
-//  PAYMENT STATUS BADGE (per row)
-// ─────────────────────────────────────────────────────────────
-function PaymentBadge({ cost, amountPaid }: { cost: number | null; amountPaid: number | null }) {
-  if (cost == null) return <span className="text-gray-600 text-xs">—</span>
-
-  const paid = amountPaid ?? 0
-  const pending = cost - paid
-
-  if (pending <= 0) {
-    return (
-      <span className="badge text-xs bg-teal-500/20 text-teal-300 border border-teal-500/30">
-        Paid
-      </span>
-    )
-  }
-  if (paid > 0) {
-    return (
-      <span className="badge text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30">
-        Partial
-      </span>
-    )
-  }
-  return (
-    <span className="badge text-xs bg-red-500/20 text-red-300 border border-red-500/30">
-      Unpaid
-    </span>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────
 //  MAIN PAGE
 // ─────────────────────────────────────────────────────────────
 export default function LaboratoryDetailPage() {
@@ -559,8 +757,8 @@ export default function LaboratoryDetailPage() {
   const [labLoading, setLabLoading] = useState(true)
   const [labError, setLabError] = useState<string | null>(null)
 
-  // Payment summary
-  const [paymentSummary, setPaymentSummary] = useState<LaboratoryPaymentSummary | null>(null)
+  // Payment stats
+  const [paymentStats, setPaymentStats] = useState<LaboratoryPaymentStats | null>(null)
 
   // Lab work list
   const [records, setRecords] = useState<LabWorkListItem[]>([])
@@ -581,6 +779,10 @@ export default function LaboratoryDetailPage() {
   const [summaryYear, setSummaryYear] = useState(new Date().getFullYear())
   const [summaryMonth, setSummaryMonth] = useState(new Date().getMonth() + 1)
 
+  // Payment months
+  const [paymentYear, setPaymentYear] = useState(new Date().getFullYear())
+  const [paymentMonth, setPaymentMonth] = useState(new Date().getMonth() + 1)
+
   // Modal states
   const [formRecord, setFormRecord] = useState<LabWork | null | undefined>(undefined)
   const [deleteId, setDeleteId] = useState<number | null>(null)
@@ -592,7 +794,8 @@ export default function LaboratoryDetailPage() {
 
   const currentMonth = new Date().getMonth() + 1
   const currentYear = new Date().getFullYear()
-  const isCurrentMonth = summaryMonth === currentMonth && summaryYear === currentYear
+  const isSummaryCurrentMonth = summaryMonth === currentMonth && summaryYear === currentYear
+  const isPaymentCurrentMonth = paymentMonth === currentMonth && paymentYear === currentYear
 
   // Load laboratory details
   useEffect(() => {
@@ -609,15 +812,15 @@ export default function LaboratoryDetailPage() {
       .finally(() => setLabLoading(false))
   }, [laboratoryId, navigate])
 
-  // Load payment summary
-  const loadPaymentSummary = useCallback(() => {
+  // Load payment stats
+  const loadPaymentStats = useCallback(() => {
     if (!laboratoryId) return
-    laboratoryApi.paymentSummary(laboratoryId)
-      .then((r) => setPaymentSummary(r.data))
-      .catch((e) => console.error('Failed to load payment summary:', e))
+    laboratoryPaymentApi.getStats(laboratoryId)
+      .then((r) => setPaymentStats(r.data))
+      .catch((e) => console.error('Failed to load payment stats:', e))
   }, [laboratoryId])
 
-  useEffect(() => { loadPaymentSummary() }, [loadPaymentSummary])
+  useEffect(() => { loadPaymentStats() }, [loadPaymentStats])
 
   // Load lab work list
   const loadRecords = useCallback(() => {
@@ -678,7 +881,6 @@ export default function LaboratoryDetailPage() {
       setDeleteId(null)
       loadRecords()
       loadSummary()
-      loadPaymentSummary()
     } catch (e) {
       showToast(parseApiError(e), 'error')
     } finally {
@@ -699,18 +901,28 @@ export default function LaboratoryDetailPage() {
     setFormRecord(undefined)
     loadRecords()
     loadSummary()
-    loadPaymentSummary()
   }
 
-  const handlePrevMonth = () => {
+  const handleSummaryPrevMonth = () => {
     if (summaryMonth === 1) { setSummaryMonth(12); setSummaryYear(summaryYear - 1) }
     else setSummaryMonth(summaryMonth - 1)
   }
 
-  const handleNextMonth = () => {
-    if (isCurrentMonth) return
+  const handleSummaryNextMonth = () => {
+    if (isSummaryCurrentMonth) return
     if (summaryMonth === 12) { setSummaryMonth(1); setSummaryYear(summaryYear + 1) }
     else setSummaryMonth(summaryMonth + 1)
+  }
+
+  const handlePaymentPrevMonth = () => {
+    if (paymentMonth === 1) { setPaymentMonth(12); setPaymentYear(paymentYear - 1) }
+    else setPaymentMonth(paymentMonth - 1)
+  }
+
+  const handlePaymentNextMonth = () => {
+    if (isPaymentCurrentMonth) return
+    if (paymentMonth === 12) { setPaymentMonth(1); setPaymentYear(paymentYear + 1) }
+    else setPaymentMonth(paymentMonth + 1)
   }
 
   if (labLoading) return <div className="p-6"><PageLoader /></div>
@@ -745,17 +957,29 @@ export default function LaboratoryDetailPage() {
         </button>
       </div>
 
-      {/* Payment Summary */}
-      {paymentSummary && <PaymentSummaryBanner summary={paymentSummary} />}
+      {/* Payment Stats */}
+      {paymentStats && <PaymentStatsBanner stats={paymentStats} />}
+
+      {/* Payments Section */}
+      {laboratoryId && (
+        <PaymentsSection
+          laboratoryId={laboratoryId}
+          year={paymentYear}
+          month={paymentMonth}
+          onPrevMonth={handlePaymentPrevMonth}
+          onNextMonth={handlePaymentNextMonth}
+          isCurrentMonth={isPaymentCurrentMonth}
+        />
+      )}
 
       {/* Treatment Summary */}
       <TreatmentSummaryCards
         summary={summary}
         year={summaryYear}
         month={summaryMonth}
-        onPrevMonth={handlePrevMonth}
-        onNextMonth={handleNextMonth}
-        isCurrentMonth={isCurrentMonth}
+        onPrevMonth={handleSummaryPrevMonth}
+        onNextMonth={handleSummaryNextMonth}
+        isCurrentMonth={isSummaryCurrentMonth}
       />
 
       {/* Filter Bar */}
@@ -795,14 +1019,13 @@ export default function LaboratoryDetailPage() {
             <table className="w-full text-sm" aria-label="Laboratory work table">
               <thead>
                 <tr className="border-b border-dark-500">
-                  {['Patient', 'Work Type', 'Teeth', 'Status', 'Cost', 'Paid', 'Payment', 'Date', 'Actions'].map((h) => (
+                  {['Patient', 'Work Type', 'Teeth', 'Status', 'Date', 'Actions'].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {records.map((r) => {
-                  const pending = r.cost != null ? r.cost - (r.amount_paid ?? 0) : null
                   return (
                     <tr key={r.id} className="border-b border-dark-600 hover:bg-dark-600/40 transition-colors">
                       <td className="px-4 py-3 font-medium text-white whitespace-nowrap">{r.patient_name}</td>
@@ -829,18 +1052,6 @@ export default function LaboratoryDetailPage() {
                         <span className={`badge text-xs ${statusColors[r.status] ?? statusColors['Pending']}`}>
                           {r.status}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-300 whitespace-nowrap text-xs font-mono">
-                        {r.cost != null ? `${fmt(r.cost)} PKR` : <span className="text-gray-600">—</span>}
-                      </td>
-                      <td className="px-4 py-3 text-gray-300 whitespace-nowrap text-xs font-mono">
-                        {r.amount_paid != null ? `${fmt(r.amount_paid)} PKR` : <span className="text-gray-600">—</span>}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {r.cost != null && pending != null && pending > 0 && (
-                          <span className="text-xs text-amber-400 font-mono block">{fmt(pending)} PKR left</span>
-                        )}
-                        <PaymentBadge cost={r.cost} amountPaid={r.amount_paid} />
                       </td>
                       <td className="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">{formatDate(r.work_date)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
