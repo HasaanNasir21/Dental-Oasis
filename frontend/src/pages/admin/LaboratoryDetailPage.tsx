@@ -89,7 +89,7 @@ function PaymentSummaryBanner({ summary }: { summary: LaboratoryPaymentSummary }
           <p className="text-xs text-gray-400 uppercase tracking-wider">Total Cost</p>
           <p className="text-xl font-bold text-white leading-tight">
             {fmt(summary.total_cost)}
-            <span className="text-xs font-normal text-gray-500 ml-1">JD</span>
+            <span className="text-xs font-normal text-gray-500 ml-1">PKR</span>
           </p>
           <p className="text-xs text-gray-500 mt-0.5">{summary.work_count} orders</p>
         </div>
@@ -104,7 +104,7 @@ function PaymentSummaryBanner({ summary }: { summary: LaboratoryPaymentSummary }
           <p className="text-xs text-gray-400 uppercase tracking-wider">Paid to Lab</p>
           <p className="text-xl font-bold text-white leading-tight">
             {fmt(summary.total_paid)}
-            <span className="text-xs font-normal text-gray-500 ml-1">JD</span>
+            <span className="text-xs font-normal text-gray-500 ml-1">PKR</span>
           </p>
           <p className="text-xs text-gray-500 mt-0.5">{summary.paid_work_count} fully paid</p>
         </div>
@@ -119,7 +119,7 @@ function PaymentSummaryBanner({ summary }: { summary: LaboratoryPaymentSummary }
           <p className="text-xs text-gray-400 uppercase tracking-wider">Pending</p>
           <p className={`text-xl font-bold leading-tight ${summary.total_pending > 0 ? 'text-amber-300' : 'text-white'}`}>
             {fmt(summary.total_pending)}
-            <span className="text-xs font-normal text-gray-500 ml-1">JD</span>
+            <span className="text-xs font-normal text-gray-500 ml-1">PKR</span>
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
             {pendingPct}% unpaid · {summary.unpaid_work_count} orders
@@ -265,9 +265,9 @@ function LabWorkFormModal({
         {/* Cost + Amount Paid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="label" htmlFor="lw-cost">Cost (JD)</label>
+            <label className="label" htmlFor="lw-cost">Cost (PKR)</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">JD</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">PKR</span>
               <input
                 id="lw-cost"
                 type="number"
@@ -281,9 +281,9 @@ function LabWorkFormModal({
             {errors.cost && <p className="field-error">{errors.cost.message}</p>}
           </div>
           <div>
-            <label className="label" htmlFor="lw-paid">Amount Paid (JD)</label>
+            <label className="label" htmlFor="lw-paid">Amount Paid (PKR)</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">JD</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">PKR</span>
               <input
                 id="lw-paid"
                 type="number"
@@ -831,14 +831,14 @@ export default function LaboratoryDetailPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-300 whitespace-nowrap text-xs font-mono">
-                        {r.cost != null ? `${fmt(r.cost)} JD` : <span className="text-gray-600">—</span>}
+                        {r.cost != null ? `${fmt(r.cost)} PKR` : <span className="text-gray-600">—</span>}
                       </td>
                       <td className="px-4 py-3 text-gray-300 whitespace-nowrap text-xs font-mono">
-                        {r.amount_paid != null ? `${fmt(r.amount_paid)} JD` : <span className="text-gray-600">—</span>}
+                        {r.amount_paid != null ? `${fmt(r.amount_paid)} PKR` : <span className="text-gray-600">—</span>}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {r.cost != null && pending != null && pending > 0 && (
-                          <span className="text-xs text-amber-400 font-mono block">{fmt(pending)} JD left</span>
+                          <span className="text-xs text-amber-400 font-mono block">{fmt(pending)} PKR left</span>
                         )}
                         <PaymentBadge cost={r.cost} amountPaid={r.amount_paid} />
                       </td>
