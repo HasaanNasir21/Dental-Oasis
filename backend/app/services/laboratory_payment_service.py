@@ -162,3 +162,23 @@ def get_all_payments_for_laboratory(
         query = query.filter(LaboratoryPayment.payment_date <= to_date)
     
     return query.order_by(LaboratoryPayment.payment_date.desc()).all()
+
+
+def get_all_monthly_summaries(db: Session, year: int, month: int) -> list[dict]:
+    """Get monthly payment summaries for all laboratories."""
+    from app.models.laboratory import Laboratory
+    
+    # Get all active laboratories
+    laboratories = db.query(Laboratory).filter(Laboratory.is_active == True).all()
+    
+    summaries = []
+    for lab in laboratories:
+        monthly = get_monthly_payments(db, lab.id, year, month)
+        summaries.append({
+            'laboratory_id': lab.id,
+            'laboratory_name': lab.name,
+            'total_amount': monthly.total_amount,
+            'payment_count': monthly.payment_count,
+        })
+    
+    return summaries

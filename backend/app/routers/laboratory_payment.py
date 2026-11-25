@@ -147,3 +147,15 @@ def get_payment_stats(
         return SuccessResponse(success=True, message="OK", data=stats)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get("/summaries/monthly", response_model=SuccessResponse)
+def get_all_monthly_summaries(
+    year: int = Query(..., description="Year (e.g., 2024)"),
+    month: int = Query(..., ge=1, le=12, description="Month (1-12)"),
+    db: Session = Depends(get_db),
+    _: str = Depends(get_current_admin),
+):
+    """Get monthly payment summaries for all laboratories."""
+    summaries = laboratory_payment_service.get_all_monthly_summaries(db, year, month)
+    return SuccessResponse(success=True, message="OK", data=summaries)

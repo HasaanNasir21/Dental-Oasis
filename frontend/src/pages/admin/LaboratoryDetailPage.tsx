@@ -250,6 +250,7 @@ function PaymentsSection({
   onPrevMonth,
   onNextMonth,
   isCurrentMonth,
+  onPaymentChanged,
 }: {
   laboratoryId: number
   year: number
@@ -257,6 +258,7 @@ function PaymentsSection({
   onPrevMonth: () => void
   onNextMonth: () => void
   isCurrentMonth: boolean
+  onPaymentChanged?: () => void
 }) {
   const [summary, setSummary] = useState<MonthlyPaymentSummary | null>(null)
   const [loading, setLoading] = useState(true)
@@ -283,6 +285,10 @@ function PaymentsSection({
       showToast('Payment deleted successfully.')
       setDeleteId(null)
       loadPayments()
+      // Notify parent to reload stats
+      if (onPaymentChanged) {
+        onPaymentChanged()
+      }
     } catch (e) {
       showToast(parseApiError(e), 'error')
     } finally {
@@ -293,6 +299,10 @@ function PaymentsSection({
   const onPaymentSaved = () => {
     setFormPayment(undefined)
     loadPayments()
+    // Notify parent to reload stats
+    if (onPaymentChanged) {
+      onPaymentChanged()
+    }
   }
 
   return (
@@ -969,6 +979,7 @@ export default function LaboratoryDetailPage() {
           onPrevMonth={handlePaymentPrevMonth}
           onNextMonth={handlePaymentNextMonth}
           isCurrentMonth={isPaymentCurrentMonth}
+          onPaymentChanged={loadPaymentStats}
         />
       )}
 

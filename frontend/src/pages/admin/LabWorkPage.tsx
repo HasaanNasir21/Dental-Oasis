@@ -234,6 +234,9 @@ function LaboratoriesTab({
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleteName, setDeleteName] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [monthlySummaries, setMonthlySummaries] = useState<Record<number, { total_amount: number; payment_count: number }>>({})
+  const [summaryMonth, setSummaryMonth] = useState(new Date().getMonth() + 1)
+  const [summaryYear, setSummaryYear] = useState(new Date().getFullYear())
   const searchTimer = useRef<ReturnType<typeof setTimeout>>()
   const { showToast } = useToast()
 
@@ -246,7 +249,26 @@ function LaboratoriesTab({
       .finally(() => setLoading(false))
   }, [page, search])
 
+  const loadMonthlySummaries = useCallback(() => {
+    // Load monthly payment summaries for all laboratories
+    import('../../services/laboratoryPaymentApi').then(({ laboratoryPaymentApi }) => {
+      laboratoryPaymentApi.getAllMonthlySummaries(summaryYear, summaryMonth)
+        .then((r) => {
+          const summaries: Record<number, { total_amount: number; payment_count: number }> = {}
+          r.data.forEach((s: any) => {
+            summaries[s.laboratory_id] = {
+              total_amount: s.total_amount,
+              payment_count: s.payment_count,
+            }
+          })
+          setMonthlySummaries(summaries)
+        })
+        .catch((e) => console.error('Failed to load monthly summaries:', e))
+    })
+  }, [summaryYear, summaryMonth])
+
   useEffect(() => { load() }, [load])
+  useEffect(() => { loadMonthlySummaries() }, [loadMonthlySummaries])
 
   // Open new-laboratory modal when parent requests it
   useEffect(() => {
@@ -285,6 +307,37 @@ function LaboratoriesTab({
     }
   }
 
+  const MONTH_NAMES = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December',
+  ]
+
+  const currentMonth = new Date().getMonth() + 1
+  const currentYear = new Date().getFullYear()
+  const isCurrentMonth = summaryMonth === currentMonth && summaryYear === currentYear
+
+  const handlePrevMonth = () => {
+    if (summaryMonth === 1) { 
+      setSummaryMonth(12)
+      setSummaryYear(summaryYear - 1)
+    } else {
+      setSummaryMonth(summaryMonth - 1)
+    }
+  }
+
+  const handleNextMonth = () => {
+    if (isCurrentMonth) return
+    if (summaryMonth === 12) { 
+      setSummaryMonth(1)
+      setSummaryYear(summaryYear + 1)
+    } else {
+      setSummaryMonth(summaryMonth + 1)
+    }
+  }
+
+  const fmt = (n: number) =>
+    n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+
   return (
     <div>
       {/* Toolbar */}
@@ -298,6 +351,31 @@ function LaboratoriesTab({
             onChange={(e) => handleSearchChange(e.target.value)}
             aria-label="Search laboratories"
           />
+        </div>
+        
+        {/* Month Navigator */}
+        <div className="flex items-center gap-2 bg-dark-700 rounded-lg px-3 py-2 border border-dark-500">
+          <button
+            onClick={handlePrevMonth}
+            className="p-1 rounded text-gray-400 hover:text-white hover:bg-dark-500 transition-colors"
+            aria-label="Previous month"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="text-sm font-medium text-white min-w-[130px] text-center">
+            {MONTH_NAMES[summaryMonth - 1]} {summaryYear}
+            {isCurrentMonth && (
+              <span className="ml-1.5 text-xs font-normal text-primary-400">(current)</span>
+            )}
+          </span>
+          <button
+            onClick={handleNextMonth}
+            disabled={isCurrentMonth}
+            className="p-1 rounded text-gray-400 hover:text-white hover:bg-dark-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Next month"
+          >
+            <ChevronRight size={16} />
+          </button>
         </div>
       </div>
 
@@ -322,13 +400,15 @@ function LaboratoriesTab({
             <table className="w-full text-sm" aria-label="Laboratories table">
               <thead>
                 <tr className="border-b border-dark-500">
-                  {['Name', 'Phone', 'Email', 'Address', 'Status', 'Actions'].map((h) => (
+                  {['Name', 'Phone', 'Email', 'Address', 'Monthly Payment', 'Status', 'Actions'].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {records.map((r) => (
+                {records.map((r) => {
+                  const summary = monthlySummaries[r.id] || { total_amount: 0, payment_count: 0 }
+                  return (
                   <tr key={r.id} className="border-b border-dark-600 hover:bg-dark-600/40 transition-colors">
                     <td className="px-4 py-3 font-medium text-white whitespace-nowrap">
                       <div className="flex items-center gap-2">
@@ -352,6 +432,16 @@ function LaboratoriesTab({
                       ) : <span className="text-gray-600">—</span>}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
+                      {summary.payment_count > 0 ? (
+                        <div className="flex flex-col">
+                          <span className="text-white font-mono font-semibold">{fmt(summary.total_amount)} PKR</span>
+                          <span className="text-xs text-gray-500">{summary.payment_count} payment{summary.payment_count !== 1 ? 's' : ''}</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-600 text-xs">No payments</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`badge text-xs ${r.is_active
                         ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
                         : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'}`}>
@@ -361,7 +451,7 @@ function LaboratoriesTab({
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => navigate(`/admin/laboratory/${r.id}`)}
+                          onClick={() => navigate(`/admin/lab-work/laboratory/${r.id}`)}
                           className="p-1.5 rounded text-gray-400 hover:text-primary-400 hover:bg-primary-500/10 transition-colors"
                           aria-label={`View ${r.name} details`}
                           title="View lab work for this laboratory"
@@ -385,7 +475,7 @@ function LaboratoriesTab({
                       </div>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>

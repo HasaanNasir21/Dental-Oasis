@@ -77,4 +77,25 @@ export const laboratoryPaymentApi = {
     )
     return response.data
   },
+
+  /**
+   * Get monthly payment summaries for all laboratories
+   */
+  async getAllMonthlySummaries(year: number, month: number): Promise<ApiResponse<Array<{
+    laboratory_id: number
+    laboratory_name: string
+    total_amount: number
+    payment_count: number
+  }>>> {
+    const response = await apiClient.get<ApiResponse<Array<{
+      laboratory_id: number
+      laboratory_name: string
+      total_amount: number
+      payment_count: number
+    }>>>(
+      `${BASE_URL}/summaries/monthly`,
+      { params: { year, month } },
+    )
+    return response.data
+  },
 }
