@@ -254,6 +254,7 @@ function LaboratoriesTab({
     import('../../services/laboratoryPaymentApi').then(({ laboratoryPaymentApi }) => {
       laboratoryPaymentApi.getAllMonthlySummaries(summaryYear, summaryMonth)
         .then((r) => {
+          if (!r.data) return
           const summaries: Record<number, { total_amount: number; payment_count: number }> = {}
           r.data.forEach((s: any) => {
             summaries[s.laboratory_id] = {
