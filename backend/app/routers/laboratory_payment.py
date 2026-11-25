@@ -16,7 +16,7 @@ from app.schemas.laboratory_payment import (
 )
 from app.services import laboratory_payment_service
 
-router = APIRouter(prefix="/laboratory-payments", tags=["Laboratory Payments"])
+router = APIRouter(prefix="/api/admin/laboratory-payments", tags=["Admin - Laboratory Payments"])
 
 
 @router.post("", response_model=SuccessResponse, status_code=status.HTTP_201_CREATED)

@@ -8,7 +8,7 @@ import type {
   LaboratoryPaymentStats,
 } from '../types'
 
-const BASE_URL = '/laboratory-payments'
+const BASE_URL = '/api/admin/laboratory-payments'
 
 export const laboratoryPaymentApi = {
   /**
