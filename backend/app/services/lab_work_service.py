@@ -24,8 +24,6 @@ def _to_out(record: LabWork) -> dict:
         "status": record.status.value if hasattr(record.status, "value") else str(record.status),
         "work_date": record.work_date,
         "notes": record.notes,
-        "cost": float(record.cost) if record.cost is not None else None,
-        "amount_paid": float(record.amount_paid) if record.amount_paid is not None else None,
         "created_at": record.created_at,
         "updated_at": record.updated_at,
     }
@@ -41,8 +39,6 @@ def _to_list(record: LabWork) -> dict:
         "teeth": record.get_teeth(),
         "status": record.status.value if hasattr(record.status, "value") else str(record.status),
         "work_date": record.work_date,
-        "cost": float(record.cost) if record.cost is not None else None,
-        "amount_paid": float(record.amount_paid) if record.amount_paid is not None else None,
         "created_at": record.created_at,
     }
 
@@ -56,8 +52,6 @@ def create_lab_work(db: Session, data: LabWorkCreate) -> LabWork:
         status=data.status,
         work_date=data.work_date,
         notes=data.notes,
-        cost=data.cost,
-        amount_paid=data.amount_paid,
     )
     record.set_teeth(data.teeth)
     db.add(record)
