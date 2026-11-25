@@ -27,8 +27,8 @@ def upgrade() -> None:
         sa.Column('amount', sa.Numeric(precision=10, scale=2), nullable=False),
         sa.Column('payment_date', sa.Date(), nullable=False),
         sa.Column('notes', sa.String(length=500), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'), nullable=False),
         sa.ForeignKeyConstraint(['laboratory_id'], ['laboratories.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
