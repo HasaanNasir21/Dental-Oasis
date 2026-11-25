@@ -452,7 +452,7 @@ function LaboratoriesTab({
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => navigate(`/admin/lab-work/laboratory/${r.id}`)}
+                          onClick={() => navigate(`/admin/laboratory/${r.id}`)}
                           className="p-1.5 rounded text-gray-400 hover:text-primary-400 hover:bg-primary-500/10 transition-colors"
                           aria-label={`View ${r.name} details`}
                           title="View lab work for this laboratory"
