@@ -49,6 +49,17 @@ def create_laboratory(
     return SuccessResponse(success=True, message="Laboratory created successfully.", data=laboratory_service._to_out(lab))
 
 
+@router.get("/{lab_id}/payment-summary", response_model=SuccessResponse)
+def get_laboratory_payment_summary(
+    lab_id: int,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_current_admin),
+):
+    """Return aggregated payment totals (total cost, paid, pending) for one laboratory."""
+    summary = laboratory_service.get_laboratory_payment_summary(db, lab_id)
+    return SuccessResponse(success=True, message="OK", data=summary)
+
+
 @router.get("/{lab_id}", response_model=SuccessResponse)
 def get_laboratory(
     lab_id: int,

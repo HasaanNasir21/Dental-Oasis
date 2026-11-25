@@ -1,5 +1,6 @@
 from pydantic import BaseModel, field_validator, EmailStr
 from typing import Optional
+from decimal import Decimal
 from datetime import datetime
 
 
@@ -147,3 +148,15 @@ class LaboratoryOption(BaseModel):
     is_active: bool
 
     model_config = {"from_attributes": True}
+
+
+class LaboratoryPaymentSummary(BaseModel):
+    """Aggregated payment totals for a single laboratory."""
+    laboratory_id: int
+    laboratory_name: str
+    total_cost: Decimal
+    total_paid: Decimal
+    total_pending: Decimal
+    work_count: int
+    paid_work_count: int
+    unpaid_work_count: int

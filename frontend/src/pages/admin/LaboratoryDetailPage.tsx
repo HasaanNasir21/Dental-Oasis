@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   Search, Edit2, Trash2, X, Save, AlertCircle,
   Filter, ChevronDown, ChevronLeft, ChevronRight,
-  ArrowLeft, Plus,
+  ArrowLeft, Plus, DollarSign, CheckCircle, Clock,
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,7 +12,7 @@ import { labWorkApi } from '../../services/labWorkApi'
 import { laboratoryApi } from '../../services/laboratoryApi'
 import type {
   LabWork, LabWorkListItem, PaginationMeta, LabWorkType, LabWorkStatus,
-  Laboratory, WorkTypeSummaryItem, LabWorkTeethSummary,
+  Laboratory, WorkTypeSummaryItem, LabWorkTeethSummary, LaboratoryPaymentSummary,
 } from '../../types'
 import { LAB_WORK_TYPES, LAB_WORK_STATUSES } from '../../types'
 import TeethSelector from '../../components/admin/TeethSelector'
@@ -37,7 +37,7 @@ const FDI_LABEL: Record<string, string> = {}
 })
 
 const statusColors: Record<string, string> = {
-  'Pending': 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
+  'Pending':   'bg-amber-500/20 text-amber-300 border border-amber-500/30',
   'Completed': 'bg-teal-500/20 text-teal-300 border border-teal-500/30',
   'Delivered': 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
 }
@@ -55,23 +55,80 @@ const workTypeColors: Record<string, string> = {
 }
 
 const workTypeIcons: Record<string, string> = {
-  'PFM': '🦷',
-  '3D PFM': '🦷',
-  'Zirconia': '🦷',
-  'E-Max': '🦷',
-  'Dentures': '🦷',
-  'Aligner': '🦷',
-  'Inlay': '🦷',
-  'CC Plate': '🦷',
-  'Other': '🦷',
+  'PFM': '🦷', '3D PFM': '🦷', 'Zirconia': '🦷', 'E-Max': '🦷',
+  'Dentures': '🦷', 'Aligner': '🦷', 'Inlay': '🦷', 'CC Plate': '🦷', 'Other': '🦷',
 }
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
 ]
 
 const todayStr = () => new Date().toISOString().split('T')[0]
+
+const fmt = (n: number) =>
+  n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+
+// ─────────────────────────────────────────────────────────────
+//  PAYMENT SUMMARY BANNER
+// ─────────────────────────────────────────────────────────────
+function PaymentSummaryBanner({ summary }: { summary: LaboratoryPaymentSummary }) {
+  const pendingPct =
+    summary.total_cost > 0
+      ? Math.round((summary.total_pending / summary.total_cost) * 100)
+      : 0
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      {/* Total cost */}
+      <div className="card flex items-center gap-4 py-4">
+        <div className="p-2.5 rounded-lg bg-blue-500/20 text-blue-300 flex-shrink-0">
+          <DollarSign size={20} />
+        </div>
+        <div>
+          <p className="text-xs text-gray-400 uppercase tracking-wider">Total Cost</p>
+          <p className="text-xl font-bold text-white leading-tight">
+            {fmt(summary.total_cost)}
+            <span className="text-xs font-normal text-gray-500 ml-1">JD</span>
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">{summary.work_count} orders</p>
+        </div>
+      </div>
+
+      {/* Received */}
+      <div className="card flex items-center gap-4 py-4">
+        <div className="p-2.5 rounded-lg bg-teal-500/20 text-teal-300 flex-shrink-0">
+          <CheckCircle size={20} />
+        </div>
+        <div>
+          <p className="text-xs text-gray-400 uppercase tracking-wider">Paid to Lab</p>
+          <p className="text-xl font-bold text-white leading-tight">
+            {fmt(summary.total_paid)}
+            <span className="text-xs font-normal text-gray-500 ml-1">JD</span>
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">{summary.paid_work_count} fully paid</p>
+        </div>
+      </div>
+
+      {/* Pending */}
+      <div className="card flex items-center gap-4 py-4">
+        <div className={`p-2.5 rounded-lg flex-shrink-0 ${summary.total_pending > 0 ? 'bg-amber-500/20 text-amber-300' : 'bg-gray-500/20 text-gray-400'}`}>
+          <Clock size={20} />
+        </div>
+        <div>
+          <p className="text-xs text-gray-400 uppercase tracking-wider">Pending</p>
+          <p className={`text-xl font-bold leading-tight ${summary.total_pending > 0 ? 'text-amber-300' : 'text-white'}`}>
+            {fmt(summary.total_pending)}
+            <span className="text-xs font-normal text-gray-500 ml-1">JD</span>
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {pendingPct}% unpaid · {summary.unpaid_work_count} orders
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─────────────────────────────────────────────────────────────
 //  LAB WORK FORM MODAL
@@ -82,6 +139,16 @@ const labWorkSchema = z.object({
   status: z.string(),
   work_date: z.string().min(1, 'Date is required'),
   notes: z.string().max(5000).optional().or(z.literal('')),
+  cost: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || (!isNaN(Number(v)) && Number(v) >= 0), { message: 'Cost must be a positive number' }),
+  amount_paid: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || (!isNaN(Number(v)) && Number(v) >= 0), { message: 'Amount paid must be a positive number' }),
 })
 type LabWorkFormValues = z.infer<typeof labWorkSchema>
 
@@ -113,6 +180,8 @@ function LabWorkFormModal({
       status: record?.status ?? 'Pending',
       work_date: record?.work_date ?? todayStr(),
       notes: record?.notes ?? '',
+      cost: record?.cost != null ? String(record.cost) : '',
+      amount_paid: record?.amount_paid != null ? String(record.amount_paid) : '',
     },
   })
 
@@ -127,6 +196,8 @@ function LabWorkFormModal({
         status: values.status as LabWorkStatus,
         work_date: values.work_date,
         notes: values.notes || undefined,
+        cost: values.cost ? Number(values.cost) : null,
+        amount_paid: values.amount_paid ? Number(values.amount_paid) : null,
       }
       if (isEdit && record) {
         await labWorkApi.update(record.id, payload)
@@ -189,6 +260,42 @@ function LabWorkFormModal({
             {...register('work_date')}
           />
           {errors.work_date && <p className="field-error">{errors.work_date.message}</p>}
+        </div>
+
+        {/* Cost + Amount Paid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="label" htmlFor="lw-cost">Cost (JD)</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">JD</span>
+              <input
+                id="lw-cost"
+                type="number"
+                min="0"
+                step="0.01"
+                className={`input pl-10 ${errors.cost ? 'border-red-500' : ''}`}
+                placeholder="0.00"
+                {...register('cost')}
+              />
+            </div>
+            {errors.cost && <p className="field-error">{errors.cost.message}</p>}
+          </div>
+          <div>
+            <label className="label" htmlFor="lw-paid">Amount Paid (JD)</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">JD</span>
+              <input
+                id="lw-paid"
+                type="number"
+                min="0"
+                step="0.01"
+                className={`input pl-10 ${errors.amount_paid ? 'border-red-500' : ''}`}
+                placeholder="0.00"
+                {...register('amount_paid')}
+              />
+            </div>
+            {errors.amount_paid && <p className="field-error">{errors.amount_paid.message}</p>}
+          </div>
         </div>
 
         {/* Teeth Selector */}
@@ -339,7 +446,6 @@ function TreatmentSummaryCards({
 }) {
   return (
     <div className="mb-6">
-      {/* Header with month navigation */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Treatment Summary</h2>
@@ -370,7 +476,6 @@ function TreatmentSummaryCards({
         </div>
       </div>
 
-      {/* Cards */}
       {!summary || summary.summary.length === 0 ? (
         <div className="card py-6 text-center">
           <p className="text-sm text-gray-500">No lab work recorded for {MONTH_NAMES[month - 1]} {year}.</p>
@@ -392,7 +497,6 @@ function TreatmentSummaryCards({
               </div>
             </div>
           ))}
-          {/* Totals card */}
           <div className="card flex items-center gap-3 py-3 border border-primary-500/20">
             <div className="p-2 rounded-lg bg-primary-500/20 flex items-center justify-center w-9 h-9 flex-shrink-0 text-primary-300 text-base">
               🏥
@@ -413,6 +517,36 @@ function TreatmentSummaryCards({
 }
 
 // ─────────────────────────────────────────────────────────────
+//  PAYMENT STATUS BADGE (per row)
+// ─────────────────────────────────────────────────────────────
+function PaymentBadge({ cost, amountPaid }: { cost: number | null; amountPaid: number | null }) {
+  if (cost == null) return <span className="text-gray-600 text-xs">—</span>
+
+  const paid = amountPaid ?? 0
+  const pending = cost - paid
+
+  if (pending <= 0) {
+    return (
+      <span className="badge text-xs bg-teal-500/20 text-teal-300 border border-teal-500/30">
+        Paid
+      </span>
+    )
+  }
+  if (paid > 0) {
+    return (
+      <span className="badge text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30">
+        Partial
+      </span>
+    )
+  }
+  return (
+    <span className="badge text-xs bg-red-500/20 text-red-300 border border-red-500/30">
+      Unpaid
+    </span>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
 //  MAIN PAGE
 // ─────────────────────────────────────────────────────────────
 export default function LaboratoryDetailPage() {
@@ -424,6 +558,9 @@ export default function LaboratoryDetailPage() {
   const [laboratory, setLaboratory] = useState<Laboratory | null>(null)
   const [labLoading, setLabLoading] = useState(true)
   const [labError, setLabError] = useState<string | null>(null)
+
+  // Payment summary
+  const [paymentSummary, setPaymentSummary] = useState<LaboratoryPaymentSummary | null>(null)
 
   // Lab work list
   const [records, setRecords] = useState<LabWorkListItem[]>([])
@@ -439,7 +576,7 @@ export default function LaboratoryDetailPage() {
   const [toDate, setToDate] = useState('')
   const [page, setPage] = useState(1)
 
-  // Summary
+  // Treatment summary (teeth per work type)
   const [summary, setSummary] = useState<LabWorkTeethSummary | null>(null)
   const [summaryYear, setSummaryYear] = useState(new Date().getFullYear())
   const [summaryMonth, setSummaryMonth] = useState(new Date().getMonth() + 1)
@@ -472,6 +609,16 @@ export default function LaboratoryDetailPage() {
       .finally(() => setLabLoading(false))
   }, [laboratoryId, navigate])
 
+  // Load payment summary
+  const loadPaymentSummary = useCallback(() => {
+    if (!laboratoryId) return
+    laboratoryApi.paymentSummary(laboratoryId)
+      .then((r) => setPaymentSummary(r.data))
+      .catch((e) => console.error('Failed to load payment summary:', e))
+  }, [laboratoryId])
+
+  useEffect(() => { loadPaymentSummary() }, [loadPaymentSummary])
+
   // Load lab work list
   const loadRecords = useCallback(() => {
     if (!laboratoryId) return
@@ -495,7 +642,7 @@ export default function LaboratoryDetailPage() {
 
   useEffect(() => { loadRecords() }, [loadRecords])
 
-  // Load summary
+  // Load teeth summary
   const loadSummary = useCallback(() => {
     if (!laboratoryId) return
 
@@ -504,11 +651,7 @@ export default function LaboratoryDetailPage() {
     const from = firstDay.toISOString().split('T')[0]
     const to = lastDay.toISOString().split('T')[0]
 
-    labWorkApi.teethSummary({
-      laboratory_id: laboratoryId,
-      from_date: from,
-      to_date: to,
-    })
+    labWorkApi.teethSummary({ laboratory_id: laboratoryId, from_date: from, to_date: to })
       .then((r) => setSummary(r.data))
       .catch((e) => console.error('Failed to load summary:', e))
   }, [laboratoryId, summaryYear, summaryMonth])
@@ -521,12 +664,7 @@ export default function LaboratoryDetailPage() {
   }
 
   const clearFilters = () => {
-    setSearch('')
-    setWorkType('')
-    setStatus('')
-    setFromDate('')
-    setToDate('')
-    setPage(1)
+    setSearch(''); setWorkType(''); setStatus(''); setFromDate(''); setToDate(''); setPage(1)
   }
 
   const hasFilters = !!(workType || status || fromDate || toDate)
@@ -540,6 +678,7 @@ export default function LaboratoryDetailPage() {
       setDeleteId(null)
       loadRecords()
       loadSummary()
+      loadPaymentSummary()
     } catch (e) {
       showToast(parseApiError(e), 'error')
     } finally {
@@ -560,34 +699,21 @@ export default function LaboratoryDetailPage() {
     setFormRecord(undefined)
     loadRecords()
     loadSummary()
+    loadPaymentSummary()
   }
 
   const handlePrevMonth = () => {
-    if (summaryMonth === 1) {
-      setSummaryMonth(12)
-      setSummaryYear(summaryYear - 1)
-    } else {
-      setSummaryMonth(summaryMonth - 1)
-    }
+    if (summaryMonth === 1) { setSummaryMonth(12); setSummaryYear(summaryYear - 1) }
+    else setSummaryMonth(summaryMonth - 1)
   }
 
   const handleNextMonth = () => {
     if (isCurrentMonth) return
-    if (summaryMonth === 12) {
-      setSummaryMonth(1)
-      setSummaryYear(summaryYear + 1)
-    } else {
-      setSummaryMonth(summaryMonth + 1)
-    }
+    if (summaryMonth === 12) { setSummaryMonth(1); setSummaryYear(summaryYear + 1) }
+    else setSummaryMonth(summaryMonth + 1)
   }
 
-  if (labLoading) {
-    return (
-      <div className="p-6">
-        <PageLoader />
-      </div>
-    )
-  }
+  if (labLoading) return <div className="p-6"><PageLoader /></div>
 
   if (labError || !laboratory) {
     return (
@@ -611,16 +737,16 @@ export default function LaboratoryDetailPage() {
           </button>
           <div>
             <h1 className="text-2xl font-bold text-white">{laboratory.name}</h1>
-            <p className="text-sm text-gray-400">Laboratory work orders for this laboratory</p>
+            <p className="text-sm text-gray-400">Laboratory work orders and payments</p>
           </div>
         </div>
-        <button
-          onClick={() => setFormRecord(null)}
-          className="btn-primary"
-        >
+        <button onClick={() => setFormRecord(null)} className="btn-primary">
           <Plus size={16} /> New Lab Work
         </button>
       </div>
+
+      {/* Payment Summary */}
+      {paymentSummary && <PaymentSummaryBanner summary={paymentSummary} />}
 
       {/* Treatment Summary */}
       <TreatmentSummaryCards
@@ -648,7 +774,7 @@ export default function LaboratoryDetailPage() {
         hasFilters={hasFilters}
       />
 
-      {/* Lab Work List */}
+      {/* Lab Work Table */}
       {loading ? (
         <PageLoader />
       ) : error ? (
@@ -669,60 +795,75 @@ export default function LaboratoryDetailPage() {
             <table className="w-full text-sm" aria-label="Laboratory work table">
               <thead>
                 <tr className="border-b border-dark-500">
-                  {['Patient', 'Work Type', 'Teeth', 'Status', 'Date', 'Actions'].map((h) => (
+                  {['Patient', 'Work Type', 'Teeth', 'Status', 'Cost', 'Paid', 'Payment', 'Date', 'Actions'].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {records.map((r) => (
-                  <tr key={r.id} className="border-b border-dark-600 hover:bg-dark-600/40 transition-colors">
-                    <td className="px-4 py-3 font-medium text-white whitespace-nowrap">{r.patient_name}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`badge text-xs ${workTypeColors[r.work_type] ?? workTypeColors['Other']}`}>
-                        {r.work_type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">
-                      {r.teeth && r.teeth.length > 0 ? (
-                        <div className="flex flex-wrap gap-1 max-w-[200px]">
-                          {r.teeth.slice(0, 5).map((t: string) => (
-                            <span key={t} className="badge text-xs bg-dark-500 text-gray-300">{FDI_LABEL[t] || t}</span>
-                          ))}
-                          {r.teeth.length > 5 && (
-                            <span className="text-xs text-gray-500">+{r.teeth.length - 5}</span>
-                          )}
+                {records.map((r) => {
+                  const pending = r.cost != null ? r.cost - (r.amount_paid ?? 0) : null
+                  return (
+                    <tr key={r.id} className="border-b border-dark-600 hover:bg-dark-600/40 transition-colors">
+                      <td className="px-4 py-3 font-medium text-white whitespace-nowrap">{r.patient_name}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`badge text-xs ${workTypeColors[r.work_type] ?? workTypeColors['Other']}`}>
+                          {r.work_type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-400 text-xs">
+                        {r.teeth && r.teeth.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 max-w-[160px]">
+                            {r.teeth.slice(0, 4).map((t: string) => (
+                              <span key={t} className="badge text-xs bg-dark-500 text-gray-300">{FDI_LABEL[t] || t}</span>
+                            ))}
+                            {r.teeth.length > 4 && (
+                              <span className="text-xs text-gray-500">+{r.teeth.length - 4}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`badge text-xs ${statusColors[r.status] ?? statusColors['Pending']}`}>
+                          {r.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-300 whitespace-nowrap text-xs font-mono">
+                        {r.cost != null ? `${fmt(r.cost)} JD` : <span className="text-gray-600">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-gray-300 whitespace-nowrap text-xs font-mono">
+                        {r.amount_paid != null ? `${fmt(r.amount_paid)} JD` : <span className="text-gray-600">—</span>}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {r.cost != null && pending != null && pending > 0 && (
+                          <span className="text-xs text-amber-400 font-mono block">{fmt(pending)} JD left</span>
+                        )}
+                        <PaymentBadge cost={r.cost} amountPaid={r.amount_paid} />
+                      </td>
+                      <td className="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">{formatDate(r.work_date)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openEdit(r.id)}
+                            className="p-1.5 rounded text-gray-400 hover:text-primary-400 hover:bg-primary-500/10 transition-colors"
+                            aria-label={`Edit ${r.patient_name}'s lab work`}
+                          >
+                            <Edit2 size={15} />
+                          </button>
+                          <button
+                            onClick={() => { setDeleteId(r.id); setDeleteName(r.patient_name) }}
+                            className="p-1.5 rounded text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            aria-label={`Delete ${r.patient_name}'s lab work`}
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         </div>
-                      ) : (
-                        <span className="text-gray-600">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`badge text-xs ${statusColors[r.status] ?? statusColors['Pending']}`}>
-                        {r.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">{formatDate(r.work_date)}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEdit(r.id)}
-                          className="p-1.5 rounded text-gray-400 hover:text-primary-400 hover:bg-primary-500/10 transition-colors"
-                          aria-label={`Edit ${r.patient_name}'s lab work`}
-                        >
-                          <Edit2 size={15} />
-                        </button>
-                        <button
-                          onClick={() => { setDeleteId(r.id); setDeleteName(r.patient_name) }}
-                          className="p-1.5 rounded text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                          aria-label={`Delete ${r.patient_name}'s lab work`}
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

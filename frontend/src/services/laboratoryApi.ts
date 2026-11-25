@@ -7,6 +7,7 @@ import type {
   LaboratoryCreate,
   LaboratoryUpdate,
   LaboratoryOption,
+  LaboratoryPaymentSummary,
 } from '../types'
 
 export const laboratoryApi = {
@@ -22,6 +23,11 @@ export const laboratoryApi = {
 
   options: async (): Promise<ApiResponse<LaboratoryOption[]>> => {
     const res = await apiClient.get('/api/admin/laboratories/options')
+    return res.data
+  },
+
+  paymentSummary: async (id: number): Promise<ApiResponse<LaboratoryPaymentSummary>> => {
+    const res = await apiClient.get(`/api/admin/laboratories/${id}/payment-summary`)
     return res.data
   },
 
