@@ -16,6 +16,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a0e1a" />
     <meta name="application-name" content="Dental Oasis" />
+    <meta name="apple-mobile-web-app-title" content="Dental Oasis" />
+    <meta name="author" content="Dental Oasis" />
     <title>Dental Oasis | Dental Clinic in Johar Town, Lahore</title>
     <meta name="description" content="Dental Oasis provides patient-focused dental care in Johar Town, Lahore, including checkups, implants, braces, aligners, root canal treatment, crowns, veneers, cleaning and more." />
     <!-- Open Graph -->
@@ -89,13 +91,37 @@
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "Dental Oasis",
+      "legalName": "Dental Oasis",
       "url": "https://dental-oasis-production.up.railway.app/",
       "logo": "https://dental-oasis-production.up.railway.app/dental-oasis-logo.png",
+      "foundingLocation": {
+        "@type": "Place",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "270 Block E2",
+          "addressLocality": "Johar Town",
+          "addressRegion": "Lahore",
+          "addressCountry": "PK"
+        }
+      },
       "sameAs": [],
       "contactPoint": {
         "@type": "ContactPoint",
-        "contactType": "customer service"
+        "contactType": "customer service",
+        "availableLanguage": ["English", "Urdu"]
       }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [{
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Dental Oasis",
+        "item": "https://dental-oasis-production.up.railway.app/"
+      }]
     }
     </script>
   </head>
